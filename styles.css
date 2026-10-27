@@ -1,0 +1,318 @@
+:root {
+  /* Тёмный фон */
+  --bg: #09090b;          /* Почти чёрный */
+  --surface: #18181b;     /* Тёмно-серый для карточек */
+  --text: #fafafa;        /* Белый текст */
+  --muted: #a1a1aa;       /* Серый текст */
+  --border: #27272a;      /* Тёмные границы */
+  
+  /* Неоновые цвета */
+  --neon-idea: #fbbf24;   /* Жёлтый/Оранжевый */
+  --neon-dev: #06b6d4;    /* Голубой/Циан */
+  --neon-test: #a855f7;   /* Фиолетовый */
+  --neon-done: #10b981;   /* Зелёный */
+  --neon-red: #ef4444;    /* Красный для удаления */
+
+  /* Тени и свечения */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --glow-idea: 0 0 15px rgba(251, 191, 36, 0.2);
+  --glow-dev: 0 0 15px rgba(6, 182, 212, 0.2);
+  --glow-test: 0 0 15px rgba(168, 85, 247, 0.2);
+  --glow-done: 0 0 15px rgba(16, 185, 129, 0.2);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--bg);
+  /* Легкий фоновый градиент для глубины */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08), transparent 25%);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  padding: 24px;
+  overflow-x: hidden;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  max-width: 1400px;
+  margin-inline: auto;
+}
+
+h1 { 
+  font-size: 24px; 
+  font-weight: 800; 
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Кнопки */
+.btn, .btn-cancel {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--neon-dev);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 10px;
+  outline: none;
+  user-select: none; /* Запрещает выделять текст на кнопке */
+}
+
+.btn {
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+}
+
+.btn:hover { 
+  background: var(--neon-dev);
+  color: #000;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.6);
+  transform: translateY(-2px);
+}
+
+/* Стили для кнопки Отмена/Войти */
+.btn-cancel {
+  border-color: var(--border);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.btn-cancel:hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--text);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+/* Доска */
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  max-width: 1400px;
+  margin-inline: auto;
+  align-items: start;
+}
+@media (max-width: 1000px) { .board { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .board { grid-template-columns: 1fr; } }
+
+/* Колонки */
+.column {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+/* Неоновые цвета для колонок */
+.column[data-status="idea"] { border-top-color: var(--neon-idea); box-shadow: var(--glow-idea); }
+.column[data-status="dev"] { border-top-color: var(--neon-dev); box-shadow: var(--glow-dev); }
+.column[data-status="test"] { border-top-color: var(--neon-test); box-shadow: var(--glow-test); }
+.column[data-status="done"] { border-top-color: var(--neon-done); box-shadow: var(--glow-done); }
+
+/* Эффект при перетаскивании */
+.column.drag-over {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed var(--text);
+  border-top-width: 3px;
+  border-top-style: solid;
+  transform: scale(1.02);
+}
+
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.column-header .count {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+}
+
+/* Карточки */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+  cursor: grab;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Неоновая полоска слева на карточке */
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--neon-dev);
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+
+.card:active { cursor: grabbing; }
+
+.card:hover { 
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.8), 0 0 15px rgba(6, 182, 212, 0.2);
+}
+.card:hover::before { opacity: 1; box-shadow: 0 0 10px var(--neon-dev); }
+
+.card.dragging { opacity: 0.5; transform: scale(0.95) rotate(2deg); }
+
+.card-title { 
+  font-weight: 700; 
+  font-size: 16px; 
+  margin-bottom: 6px; 
+  text-shadow: 0 0 5px rgba(255,255,255,0.1);
+}
+.card-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+
+.card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--neon-dev);
+  text-decoration: none;
+  font-weight: 600;
+  background: rgba(6, 182, 212, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  transition: all 0.3s;
+}
+.card-link:hover { 
+  background: rgba(6, 182, 212, 0.2); 
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+}
+
+.delete-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0;
+  transition: all 0.3s;
+}
+.card:hover .delete-btn { opacity: 1; }
+.delete-btn:hover { 
+  color: var(--neon-red); 
+  text-shadow: 0 0 8px var(--neon-red);
+  transform: scale(1.2);
+}
+
+/* Модалки */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.modal-overlay.open { display: flex; opacity: 1; }
+
+.modal {
+  background: rgba(24, 24, 27, 0.95);
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 450px;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 0 40px rgba(168, 85, 247, 0.15), inset 0 0 20px rgba(0,0,0,0.5);
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+}
+
+.modal-overlay.open .modal { transform: translateY(0); }
+
+.modal h2 { 
+  font-size: 20px; 
+  margin-bottom: 20px; 
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.form-group { margin-bottom: 16px; }
+.form-group label { 
+  display: block; 
+  font-size: 13px; 
+  font-weight: 600; 
+  color: var(--muted); 
+  margin-bottom: 6px; 
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input, 
+.form-group textarea, 
+.form-group select {
+  width: 100%; 
+  padding: 12px; 
+  background: var(--bg);
+  border: 1px solid var(--border); 
+  border-radius: 8px; 
+  font-size: 14px; 
+  color: var(--text);
+  outline: none;
+  transition: all 0.3s;
+}
+
+.form-group input:focus, 
+.form-group textarea:focus, 
+.form-group select:focus { 
+  border-color: var(--neon-test); 
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+}
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+/* Кастомный скроллбар для киберпанк-вайба */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { 
+  background: var(--border); 
+  border-radius: 4px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: var(--neon-dev); 
+  box-shadow: 0 0 10px var(--neon-dev);
+}
