@@ -377,6 +377,30 @@ onAuthStateChanged(auth, (user) => {
     // ПОКАЗЫВАЕМ нижнюю форму для идей
     if (guestSection) guestSection.style.display = 'block';
   }
+  window.addTaskAdmin = async () => {
+  const title = document.getElementById('input-title').value.trim();
+  const desc = document.getElementById('input-desc').value.trim();
+  const url = document.getElementById('input-link').value.trim();
+  const status = document.getElementById('input-status').value;
+
+  if (!title) return alert('Введите название проекта!');
+
+  try {
+    if (typeof editingTaskId !== 'undefined' && editingTaskId) {
+      const taskRef = doc(db, 'tasks', editingTaskId);
+      await updateDoc(taskRef, {
+        title: title, desc: desc, url: url, status: status
+      });
+    } else {
+      await addDoc(tasksCollection, {
+        title: title, desc: desc, url: url, status: status, createdAt: Date.now()
+      });
+    }
+    if (window.closeModal) window.closeModal();
+  } catch (error) {
+    alert("Ошибка: " + error.message);
+  }
+};
   
   render(); 
 });
