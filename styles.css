@@ -72,3 +72,56 @@ h1{font:900 28px var(--serif);letter-spacing:.04em;color:var(--snow);text-shadow
 @media (max-width:1100px){.board{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:640px){body{padding:16px 12px 150px}.board{grid-template-columns:1fr}.search,.tools{width:100%}.moon{width:60px;height:60px;top:60px}h1{font-size:22px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ───── Расширение: эффекты и новые элементы ───── */
+.btn{position:relative;overflow:hidden}
+a.btn{display:inline-block;text-decoration:none}
+.btn.icon{padding:11px 13px;font-size:16px;line-height:1}
+.btn.icon[aria-pressed=true]{border-color:var(--kin);color:var(--kin)}
+.rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.35);transform:scale(0);animation:rip .65s ease-out forwards;pointer-events:none}
+.modal .btn.ghost .rip{background:rgba(29,26,38,.18)}
+.moon{transform:translate(calc(var(--px,0)*-16px),calc(var(--py,0)*-10px));animation:glow 6s ease-in-out infinite alternate}
+.today{font-size:12px;color:var(--kin);letter-spacing:.06em;margin-top:2px}.today::first-letter{text-transform:uppercase}
+.sync{font-size:12px;font-weight:700;padding:6px 10px;border-radius:4px;border:1px solid rgba(244,247,255,.25);color:#a9b4d8;white-space:nowrap}
+.sync[data-s=ok]{color:var(--done);border-color:rgba(95,208,160,.5)}.sync[data-s=off]{color:#ff8a98;border-color:rgba(255,138,152,.6)}.sync[data-s=cache]{color:var(--kin);border-color:rgba(216,178,90,.6)}
+/* бумажные фонари и падающая звезда */
+.lamp{position:fixed;top:-4px;z-index:2;width:34px;height:44px;margin-top:22px;border-radius:50%/42%;display:grid;place-items:center;font:900 15px var(--serif);color:#ffe9a8;pointer-events:none;
+  background:radial-gradient(circle at 50% 40%,#ffcf6a,#f0562f 60%,#a5111f);border-top:5px solid var(--kin);border-bottom:5px solid var(--kin);box-shadow:0 0 22px 4px rgba(255,140,60,.55);transform-origin:50% -22px;animation:sway 4.5s ease-in-out infinite alternate}
+.lamp::before{content:"";position:absolute;left:50%;top:-27px;width:2px;height:22px;background:var(--kin)}
+.lamp.l{left:calc(50% - 640px)}.lamp.r{right:calc(50% - 640px);animation-delay:-2.2s}
+@media (max-width:1500px){.lamp{display:none}}
+.star{position:fixed;top:14%;left:-12%;width:130px;height:2px;z-index:0;pointer-events:none;opacity:0;background:linear-gradient(90deg,transparent,#fff);transform:rotate(24deg);animation:shoot 11s linear 3s infinite}
+/* фильтры */
+.chips{position:relative;z-index:2;max-width:1400px;margin:-8px auto 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chips button{padding:7px 14px;border-radius:4px;border:1px solid rgba(244,247,255,.3);background:rgba(10,16,48,.6);color:var(--snow);font:700 13px var(--sans);cursor:pointer;transition:.2s}
+.chips button:hover{border-color:var(--kin)}.chips button[aria-pressed=true]{background:var(--shu);border-color:var(--shu);color:var(--paper)}
+.chips .sp{flex:1}.chips #fnote{font-size:13px;color:var(--kin)}
+#sort-btn{border-style:dashed!important}
+/* карточки: наклон, мета, скелетоны */
+.card{animation:rise .4s ease-out}
+@media (hover:hover){.card:hover{transform:perspective(800px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(-3px)}}
+.card-meta{display:flex;gap:8px;align-items:center;margin:-4px 0 10px;font-size:11px;color:var(--mute);letter-spacing:.03em}
+.tag{padding:1px 7px;border-radius:3px;background:var(--ai2);color:var(--paper);font-weight:700}
+.card.skel{height:88px;cursor:default;background:linear-gradient(90deg,rgba(244,247,255,.07) 25%,rgba(244,247,255,.17) 50%,rgba(244,247,255,.07) 75%) 0 0/200% 100%;box-shadow:none;animation:shim 1.5s linear infinite}
+.card.skel::before{display:none}.card.skel.short{height:60px}
+.card:focus-visible{outline:2px solid var(--kin);outline-offset:3px}
+/* окна: подробности и справка */
+.modal.wide{max-width:580px;max-height:88vh;overflow:auto}
+.dt-top{display:flex;gap:14px;align-items:center;margin-bottom:14px}.dt-top h2{margin:0;word-break:break-word}
+.dt-st{font-size:13px;color:var(--mute)}.dt-desc{white-space:pre-wrap;margin-bottom:12px;word-break:break-word}.dt-date{font-size:12px;color:var(--mute)}
+.stamp.big{position:static;flex:none;width:52px;height:52px;font-size:28px;transform:rotate(-5deg)}
+.modal-actions{flex-wrap:wrap}
+.help h3{font:900 15px var(--serif);margin:18px 0 6px;color:var(--shu)}.help p,.help li{font-size:14px;line-height:1.6}
+.legend li{list-style:none;display:flex;gap:10px;align-items:center;margin:7px 0}
+.k-idea{background:var(--idea)}.k-dev{background:var(--dev)}.k-test{background:var(--test)}.k-done{background:var(--done)}
+.help .kj{color:var(--ai);margin:0}
+kbd{padding:1px 8px;border:1px solid rgba(29,26,38,.4);border-bottom-width:3px;border-radius:4px;font:700 12px var(--sans);background:#fffdf6}
+.foot{position:relative;z-index:2;margin-top:36px;text-align:center;font-size:12px;letter-spacing:.14em;color:#8e9ac0}.foot .jp{color:var(--shu);font-weight:900;margin-right:6px}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+@keyframes glow{from{box-shadow:0 0 60px 8px rgba(244,240,220,.22)}to{box-shadow:0 0 90px 18px rgba(244,240,220,.38)}}
+@keyframes sway{from{transform:rotate(6deg)}to{transform:rotate(-6deg)}}
+@keyframes shoot{0%{opacity:0;transform:translate(0,0) rotate(24deg)}2%{opacity:1}12%{opacity:0;transform:translate(120vw,55vh) rotate(24deg)}100%{opacity:0}}
+@keyframes rise{from{transform:translateY(10px)}}
+@keyframes shim{to{background-position:-200% 0}}
+@media (max-width:640px){.sync{order:5}.chips{margin-top:0}}
+@media (prefers-reduced-motion:reduce){.lamp,.star,.moon,.card,.card.skel,.rip{animation:none!important}}
