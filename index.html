@@ -6,34 +6,39 @@
 <meta name="theme-color" content="#0a1030">
 <meta name="description" content="Доска проектов E.Baltabayev: идеи, разработка, тестирование и готовые работы в реальном времени.">
 <title>Доска разработчика · E.Baltabayev</title>
+<meta property="og:title" content="Доска разработчика · E.Baltabayev"><meta property="og:description" content="Идеи, разработка, тестирование и готовые работы в реальном времени."><meta property="og:type" content="website"><meta name="twitter:card" content="summary">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Manrope:wght@500;700;800&family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
 <div class="moon" aria-hidden="true"></div>
 <div class="star" aria-hidden="true"></div>
-<div class="lamp l" aria-hidden="true">福</div><div class="lamp r" aria-hidden="true">冬</div>
+<div class="lamp l" aria-hidden="true">福</div><div class="lamp r" data-sk aria-hidden="true">冬</div>
 <canvas id="snow" aria-hidden="true"></canvas>
 <svg class="mount" viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-  <path d="M0 320V250l140-40 120 30 160-60 150 50 180-40 170 50 180-30 140 40v120z" fill="#101c45"/>
-  <path d="M470 320L640 120l60-20 60 20L930 320z" fill="#16255a"/>
-  <path d="M600 160l40-40 60-20 60 20 40 40-22-8-18 14-22-12-20 14-20-14-22 12-18-14z" fill="#f4f7ff"/>
-  <path d="M0 320V280l180-30 200 24 240-20 220 26 220-24 180 22v82z" fill="#0a1233"/>
-  <g fill="#0a1233"><path d="M1180 320V200h14v120zM1250 320V200h14v120z"/><path d="M1150 196q65-26 130-0l14-18q-80-24-158 0z"/><rect x="1166" y="214" width="112" height="8"/></g>
+  <path class="m1" d="M0 320V250l140-40 120 30 160-60 150 50 180-40 170 50 180-30 140 40v120z"/>
+  <path class="m2" d="M470 320L640 120l60-20 60 20L930 320z"/>
+  <path class="cap" d="M600 160l40-40 60-20 60 20 40 40-22-8-18 14-22-12-20 14-20-14-22 12-18-14z"/>
+  <path class="m4" d="M0 320V280l180-30 200 24 240-20 220 26 220-24 180 22v82z"/>
   <g fill="#c8102e" opacity=".9"><path d="M1180 320V200h14v120zM1250 320V200h14v120z"/><path d="M1150 196q65-26 130 0l14-18q-80-24-158 0z"/><rect x="1166" y="214" width="112" height="8"/></g>
 </svg>
 
 <header>
   <div class="logo">
-    <span class="logo-ic" aria-hidden="true">冬</span>
+    <span class="logo-ic" data-sk aria-hidden="true">冬</span>
     <div><h1>E.Baltabayev</h1><p class="sub">開発ボード · доска проектов</p><p class="today" id="today"></p></div>
   </div>
   <div class="tools">
     <span class="sync" id="sync" data-s="load" role="status">● подключаюсь…</span>
     <input class="search" id="q" type="text" name="board-filter" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" readonly onfocus="this.removeAttribute('readonly')" placeholder="Поиск по проектам…" aria-label="Поиск">
     <button class="btn ghost" id="fclr" onclick="clearFilter()" hidden>✕ Сбросить поиск</button>
-    <button class="btn ghost icon" id="snow-btn" onclick="toggleSnow()" aria-pressed="true" title="Снегопад (S)" aria-label="Снегопад">❄</button>
+    <button class="btn ghost icon" id="snow-btn" onclick="toggleSnow()" aria-pressed="true" title="Эффекты сезона (S)" aria-label="Эффекты сезона">❄</button>
     <button class="btn ghost icon" onclick="openHelp()" title="Справка (?)" aria-label="Справка">？</button>
+    <button class="btn ghost icon" data-admin hidden onclick="exportData()" title="Скачать резервную копию" aria-label="Резервная копия">⤓</button>
+    <label class="btn ghost icon" data-admin hidden title="Загрузить копию" aria-label="Загрузить копию">⤒<input type="file" accept="application/json" hidden onchange="importData(this)"></label>
     <button class="btn ghost" id="auth-btn" onclick="toggleAuth()">Войти</button>
     <button class="btn" id="add-btn" onclick="openModal()">＋ Новый проект</button>
   </div>
@@ -71,11 +76,11 @@
 
 <section id="guest-idea-section" class="guest" hidden>
   <h2><span class="jp">案</span> Есть идея для сайта?</h2>
-  <textarea id="guest-idea-input" rows="3" placeholder="Напишите, что бы вы хотели добавить или улучшить…"></textarea>
+  <textarea id="guest-idea-input" rows="3" maxlength="280" placeholder="Напишите, что бы вы хотели добавить или улучшить…"></textarea>
   <button class="btn" onclick="submitGuestIdea()">Отправить предложение</button>
 </section>
 
-<footer class="foot"><span class="jp">冬</span> E.Baltabayev · <span id="yr"></span> · снег идёт, проекты растут</footer>
+<footer class="foot"><span class="jp" data-sk>冬</span> E.Baltabayev · <span id="yr"></span> · <span id="foot-t"></span></footer>
 
 <div class="modal-overlay" id="modal-card"><div class="modal"><div id="card-body"></div></div></div>
 
@@ -90,10 +95,11 @@
       <li><i class="kj k-test">試</i><span><b>Тестирование</b>: проверяется перед выпуском</span></li>
       <li><i class="kj k-done">完</i><span><b>Готово</b>: проект завершён</span></li>
     </ul>
-    <h3>Для гостей</h3><p>Смотрите проекты, ищите по названию и описанию, фильтруйте по ссылке или по идеям посетителей. Нажмите на карточку, чтобы открыть подробности. Свою идею можно отправить в форме внизу страницы, она появится в колонке «Идеи».</p>
-    <h3>Для администратора</h3><p>После входа можно создавать, править и удалять проекты и перетаскивать карточки между колонками. На телефоне есть кнопка ➜, она передвигает карточку в следующую колонку. Когда проект переходит в «Готово», вылетают искры.</p>
+    <h3>Для гостей</h3><p>Смотрите проекты, ищите по названию и описанию, фильтруйте по ссылке или по идеям посетителей. Нажмите на карточку, чтобы открыть подробности. Свою идею можно отправить в форме внизу страницы, она появится в колонке «Идеи» после проверки. За идеи можно голосовать ▲ (один раз с устройства), в сортировке есть «Популярные». У каждой карточки своя ссылка: кнопка «Поделиться».</p>
+    <h3>Для администратора</h3><p>После входа можно создавать, править и удалять проекты и перетаскивать карточки между колонками. На телефоне есть кнопка ➜, она передвигает карточку в следующую колонку. Новые идеи гостей ждут вашего «Одобрить» в колонке «Идеи». В режиме «Мой порядок» карточки можно переставлять и внутри колонки. Кнопки ⤓ и ⤒ сохраняют и загружают резервную копию. Когда проект переходит в «Готово», вылетают искры.</p>
     <h3>Горячие клавиши</h3>
     <p><kbd>/</kbd> поиск &nbsp; <kbd>?</kbd> справка &nbsp; <kbd>N</kbd> новый проект (админ) &nbsp; <kbd>S</kbd> снегопад &nbsp; <kbd>Esc</kbd> закрыть окно</p>
+    <h3>Времена года</h3><p>Тема меняется сама: 冬 зима, 桜 весна, 緑 лето, 秋 осень. Любую можно посмотреть через <kbd>?season=winter</kbd> в адресе.</p>
     <h3>Иероглифы</h3>
     <p>冬 <i>фую</i>: зима. 案 <i>ан</i>: замысел. 作 <i>саку</i>: создавать. 試 <i>си</i>: проба. 完 <i>кан</i>: завершение. 霜月 <i>симоцуки</i>: «месяц инея», ноябрь.</p>
     <h3>Связь</h3><p>Значок в шапке показывает состояние: «на связи», «из кэша» (данные есть, но свежих нет) или «нет сети». Настройки снега, фильтра и сортировки запоминаются в браузере.</p>
@@ -108,6 +114,8 @@
       <div class="form-group"><label>Название проекта</label><input type="text" id="input-title" placeholder="Например: Turan Camp"></div>
       <div class="form-group"><label>Краткое описание</label><textarea id="input-desc" rows="2" placeholder="Что это за проект…"></textarea></div>
       <div class="form-group"><label>Ссылка на проект (URL)</label><input type="url" id="input-link" placeholder="https://..."></div>
+      <div class="form-group"><label>Теги (через запятую)</label><input type="text" id="input-tags" placeholder="сайт, игра, telegram"></div>
+      <div class="form-group"><label>Скриншот (ссылка на картинку)</label><input type="url" id="input-shot" placeholder="https://.../preview.jpg"></div>
       <div class="form-group"><label>Статус</label>
         <select id="input-status">
           <option value="idea">💡 Идея</option>
@@ -137,5 +145,6 @@
 </div>
 
 <script type="module" src="script.js"></script>
+<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script>
 </body>
 </html>
