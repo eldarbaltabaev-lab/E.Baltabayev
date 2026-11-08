@@ -26,7 +26,8 @@
     <div><h1>E.Baltabayev</h1><p class="sub">開発ボード · доска проектов</p></div>
   </div>
   <div class="tools">
-    <input class="search" id="q" type="search" placeholder="Поиск по проектам…" oninput="setFilter(this.value)" aria-label="Поиск">
+    <input class="search" id="q" type="text" name="board-filter" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" readonly onfocus="this.removeAttribute('readonly')" placeholder="Поиск по проектам…" aria-label="Поиск">
+    <button class="btn ghost" id="fclr" onclick="clearFilter()" hidden>✕ Сбросить поиск</button>
     <button class="btn ghost" id="auth-btn" onclick="toggleAuth()">Войти</button>
     <button class="btn" id="add-btn" onclick="openModal()">＋ Новый проект</button>
   </div>

@@ -67,7 +67,14 @@ function render() {
   $('done-n').textContent = counts.done; $('all-n').textContent = all;
   $('prog-f').style.width = pct + '%'; $('prog-p').textContent = pct + '%';
 }
-window.setFilter = (v) => { filter = v; render(); };
+// Поиск реагирует только на настоящий ввод с клавиатуры. Автозаполнение браузера (вставка email/пароля
+// в поле) раньше могло молча отфильтровать все карточки.
+$('q').value = '';
+$('q').addEventListener('input', (e) => {
+  if (!e.inputType || e.inputType === 'insertReplacementText') { e.target.value = filter; return; }
+  filter = e.target.value; $('fclr').hidden = !filter.trim(); render();
+});
+window.clearFilter = () => { filter = ''; $('q').value = ''; $('fclr').hidden = true; render(); };
 
 // светящийся блик на карточке следует за курсором
 document.addEventListener('pointermove', (e) => {
