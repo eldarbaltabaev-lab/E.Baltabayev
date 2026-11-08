@@ -9,19 +9,21 @@
 <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
-<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="moon" aria-hidden="true"></div>
 <canvas id="snow" aria-hidden="true"></canvas>
-<svg class="mount" viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true">
-  <path d="M0 300V190l120-70 90 60 150-120 140 130 110-80 160 110 130-100 150 90 120-70 130 80 130-60v240z" fill="#0d1f45" opacity=".75"/>
-  <path d="M0 300V230l160-80 100 70 130-90 150 110 140-100 170 120 120-70 160 80 140-60 170 70v100z" fill="#08142e"/>
-  <path d="M390 130l-18 22 20-6 16 14 12-18zM1030 150l-14 20 18-6 14 12 10-16z" fill="#eaf6ff" opacity=".9"/>
+<svg class="mount" viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  <path d="M0 320V250l140-40 120 30 160-60 150 50 180-40 170 50 180-30 140 40v120z" fill="#101c45"/>
+  <path d="M470 320L640 120l60-20 60 20L930 320z" fill="#16255a"/>
+  <path d="M600 160l40-40 60-20 60 20 40 40-22-8-18 14-22-12-20 14-20-14-22 12-18-14z" fill="#f4f7ff"/>
+  <path d="M0 320V280l180-30 200 24 240-20 220 26 220-24 180 22v82z" fill="#0a1233"/>
+  <g fill="#0a1233"><path d="M1180 320V200h14v120zM1250 320V200h14v120z"/><path d="M1150 196q65-26 130-0l14-18q-80-24-158 0z"/><rect x="1166" y="214" width="112" height="8"/></g>
+  <g fill="#c8102e" opacity=".9"><path d="M1180 320V200h14v120zM1250 320V200h14v120z"/><path d="M1150 196q65-26 130 0l14-18q-80-24-158 0z"/><rect x="1166" y="214" width="112" height="8"/></g>
 </svg>
 
 <header>
   <div class="logo">
-    <span class="logo-ic">❄</span>
-    <div><h1>E.Baltabayev</h1><p class="sub">Доска проектов · зимняя смена</p></div>
+    <span class="logo-ic" aria-hidden="true">冬</span>
+    <div><h1>E.Baltabayev</h1><p class="sub">開発ボード · доска проектов</p></div>
   </div>
   <div class="tools">
     <input class="search" id="q" type="search" placeholder="Поиск по проектам…" oninput="setFilter(this.value)" aria-label="Поиск">
@@ -31,32 +33,32 @@
 </header>
 
 <section class="prog" aria-label="Прогресс">
-  <span class="prog-l"><b id="done-n">0</b> из <b id="all-n">0</b> готово</span>
+  <span class="prog-l"><span class="jp">進捗</span> <b id="done-n">0</b> из <b id="all-n">0</b></span>
   <div class="prog-t"><div class="prog-f" id="prog-f"></div></div>
   <span class="prog-p" id="prog-p">0%</span>
 </section>
 
 <main class="board">
-  <div class="column" data-status="idea" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-    <div class="column-header"><span>💡 Идеи</span><span class="count" id="count-idea">0</span></div>
+  <div class="column" data-status="idea" data-k="案" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+    <div class="column-header"><span><i class="kj">案</i>Идеи</span><span class="count" id="count-idea">0</span></div>
     <div class="cards-container" id="list-idea"></div>
   </div>
-  <div class="column" data-status="dev" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-    <div class="column-header"><span>⚙️ В разработке</span><span class="count" id="count-dev">0</span></div>
+  <div class="column" data-status="dev" data-k="作" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+    <div class="column-header"><span><i class="kj">作</i>В разработке</span><span class="count" id="count-dev">0</span></div>
     <div class="cards-container" id="list-dev"></div>
   </div>
-  <div class="column" data-status="test" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-    <div class="column-header"><span>🧪 Тестирование</span><span class="count" id="count-test">0</span></div>
+  <div class="column" data-status="test" data-k="試" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+    <div class="column-header"><span><i class="kj">試</i>Тестирование</span><span class="count" id="count-test">0</span></div>
     <div class="cards-container" id="list-test"></div>
   </div>
-  <div class="column" data-status="done" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-    <div class="column-header"><span>✅ Готово</span><span class="count" id="count-done">0</span></div>
+  <div class="column" data-status="done" data-k="完" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+    <div class="column-header"><span><i class="kj">完</i>Готово</span><span class="count" id="count-done">0</span></div>
     <div class="cards-container" id="list-done"></div>
   </div>
 </main>
 
 <section id="guest-idea-section" class="guest" hidden>
-  <h2>💡 Есть идея для сайта?</h2>
+  <h2><span class="jp">案</span> Есть идея для сайта?</h2>
   <textarea id="guest-idea-input" rows="3" placeholder="Напишите, что бы вы хотели добавить или улучшить…"></textarea>
   <button class="btn" onclick="submitGuestIdea()">Отправить предложение</button>
 </section>

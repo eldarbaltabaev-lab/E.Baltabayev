@@ -17,6 +17,7 @@ const auth = getAuth(app);
 const tasksCollection = collection(db, 'tasks');
 
 const STATUSES = ['idea', 'dev', 'test', 'done'];
+const KANJI = { idea: '案', dev: '作', test: '試', done: '完' };
 let isAdmin = false, tasks = [], draggedId = null, editingTaskId = null, filter = '';
 const $ = (id) => document.getElementById(id);
 
@@ -36,18 +37,18 @@ function toast(text, bad) {
 onSnapshot(tasksCollection, (snap) => {
   tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   render();
-});
+}, (err) => { console.error(err); toast('Не удалось получить данные: ' + err.message, true); });
 
 function render() {
   const q = filter.trim().toLowerCase(), counts = { idea: 0, dev: 0, test: 0, done: 0 };
   STATUSES.forEach((s) => { $('list-' + s).innerHTML = ''; });
-  tasks.forEach((task, i) => {
+  tasks.forEach((task) => {
     if (counts[task.status] === undefined) return;
     counts[task.status]++;
     if (q && !((task.title || '') + ' ' + (task.desc || '')).toLowerCase().includes(q)) return;
     const url = safeUrl(task.url), next = STATUSES[STATUSES.indexOf(task.status) + 1];
     const card = document.createElement('div');
-    card.className = 'card'; card.draggable = isAdmin; card.style.animationDelay = Math.min(i, 12) * 40 + 'ms';
+    card.className = 'card'; card.draggable = isAdmin;
     card.addEventListener('dragstart', (e) => window.dragStart(e, task.id));
     card.addEventListener('dragend', () => card.classList.remove('dragging'));
     card.innerHTML = `
@@ -57,6 +58,7 @@ function render() {
         <button class="delete-btn" onclick="deleteTask('${task.id}')" title="Удалить">✕</button></div>` : ''}
       <div class="card-title">${esc(task.title)}</div>
       <div class="card-desc">${esc(task.desc)}</div>
+      <i class="stamp" aria-hidden="true">${KANJI[task.status]}</i>
       ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="card-link">🔗 Открыть проект</a>` : ''}`;
     $('list-' + task.status).append(card);
   });
@@ -148,25 +150,26 @@ window.submitGuestIdea = async () => {
   } catch (err) { toast('Ошибка при отправке: ' + err.message, true); }
 };
 
-// ── Снегопад ──
+// ── Снегопад (лёгкий: без свечения и размытия, чтобы не нагружать телефон) ──
 (() => {
   const cv = $('snow'), g = cv.getContext('2d');
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   let W, H, wind = 0, flakes = [];
   const size = () => {
     W = cv.width = innerWidth; H = cv.height = innerHeight;
-    flakes = Array.from({ length: Math.min(160, Math.round(W * H / 9000)) }, () => ({ x: Math.random() * W, y: Math.random() * H, z: Math.random() * .8 + .2, p: Math.random() * 6.28 }));
+    flakes = Array.from({ length: Math.min(90, Math.round(W * H / 14000)) }, () => ({ x: Math.random() * W, y: Math.random() * H, z: Math.random() * .8 + .2, p: Math.random() * 6.28 }));
   };
   size(); addEventListener('resize', size);
   addEventListener('pointermove', (e) => { wind = (e.clientX / W - .5) * 2; });
+  g.fillStyle = '#fff';
   (function loop(t) {
+    requestAnimationFrame(loop);
+    if (document.hidden) return;
     g.clearRect(0, 0, W, H);
     for (const f of flakes) {
-      f.y += f.z * 1.3 + .3; f.x += Math.sin(t / 1500 + f.p) * .4 * f.z + wind * f.z * 1.4;
+      f.y += f.z * 1.1 + .3; f.x += Math.sin(t / 1500 + f.p) * .4 * f.z + wind * f.z * 1.2;
       if (f.y > H + 6) { f.y = -6; f.x = Math.random() * W; } if (f.x > W + 6) f.x = -6; if (f.x < -6) f.x = W + 6;
-      g.globalAlpha = .3 + f.z * .6; g.fillStyle = '#fff'; g.shadowColor = '#bfe6ff'; g.shadowBlur = 6 * f.z;
-      g.beginPath(); g.arc(f.x, f.y, f.z * 2.6, 0, 6.283); g.fill();
+      g.globalAlpha = .35 + f.z * .55; g.beginPath(); g.arc(f.x, f.y, f.z * 2.4, 0, 6.283); g.fill();
     }
-    requestAnimationFrame(loop);
   })(0);
 })();
