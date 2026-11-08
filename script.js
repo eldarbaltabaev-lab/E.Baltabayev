@@ -1,27 +1,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc,
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-// ═══════════════════════════════════════════════════════════
-// 1. ⬇️ ВСТАВЬ СЮДА СВОЙ КОД ИЗ FIREBASE ⬇️
-// ══════════════════════════════════════════════════════════
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
+// ── Firebase (твой конфиг, без изменений) ──
 const firebaseConfig = {
   apiKey: 'AIzaSyCFNCEiyo3bQXbeDr17RBnps9Nclw-Bf3k',
   authDomain: 'meprtf-261b5.firebaseapp.com',
@@ -30,377 +11,162 @@ const firebaseConfig = {
   messagingSenderId: '455250051170',
   appId: '1:455250051170:web:8ed8da93386265fe14d13b',
 };
-
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-//══════════════════════════════════════════════
-// 2. ⬆️ КОНЕЦ ВСТАВКИ (ниже ничего не меняй) ⬆️
-// ═══════════════════════════════════════════════════════════
-
-// Инициализация базы (сработает, когда ты вставишь конфиг выше)
 const db = getFirestore(app);
-const tasksCollection = collection(db, 'tasks');
 const auth = getAuth(app);
-let isAdmin = false; // По умолчанию мы гости
+const tasksCollection = collection(db, 'tasks');
 
-let tasks = [];
-let draggedId = null;
-let editingTaskId = null;
+const STATUSES = ['idea', 'dev', 'test', 'done'];
+let isAdmin = false, tasks = [], draggedId = null, editingTaskId = null, filter = '';
+const $ = (id) => document.getElementById(id);
 
-// Подписка на изменения в базе данных (Realtime)
-onSnapshot(tasksCollection, (snapshot) => {
-  console.log('📥 Получено документов из базы:', snapshot.size);
+// ── Вспомогательное ──
+const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeUrl = (u = '') => (/^https?:\/\//i.test(u) ? u : '');
+let toastTimer;
+function toast(text, bad) {
+  let t = $('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role', 'status'); document.body.append(t); }
+  t.textContent = text; t.classList.toggle('bad', !!bad);
+  requestAnimationFrame(() => t.classList.add('show'));
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
+}
 
-  tasks = [];
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    console.log('Задача:', data.title, '| Статус:', data.status);
-    tasks.push({ id: doc.id, ...data });
-  });
+// ── Данные (реальное время) ──
+onSnapshot(tasksCollection, (snap) => {
+  tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   render();
 });
 
 function render() {
-  // 1. Очищаем колонки (добавил проверку, чтобы не было ошибки)
-  ['idea', 'dev', 'test', 'done'].forEach((status) => {
-    const list = document.getElementById(`list-${status}`);
-    const count = document.getElementById(`count-${status}`);
-    if (list) list.innerHTML = '';
-    if (count) count.innerText = '0';
-  });
-
-  const counts = { idea: 0, dev: 0, test: 0, done: 0 };
-
-  // 2. Рисуем карточки
-  tasks.forEach((task) => {
-    // Проверка, чтобы не рисовать задачи с неизвестным статусом
+  const q = filter.trim().toLowerCase(), counts = { idea: 0, dev: 0, test: 0, done: 0 };
+  STATUSES.forEach((s) => { $('list-' + s).innerHTML = ''; });
+  tasks.forEach((task, i) => {
     if (counts[task.status] === undefined) return;
-
     counts[task.status]++;
-
-    const container = document.getElementById(`list-${task.status}`);
-    if (!container) return; // Если колонки нет, пропускаем
-
+    if (q && !((task.title || '') + ' ' + (task.desc || '')).toLowerCase().includes(q)) return;
+    const url = safeUrl(task.url), next = STATUSES[STATUSES.indexOf(task.status) + 1];
     const card = document.createElement('div');
-    card.className = 'card';
-    card.draggable = true;
-    card.ondragstart = (e) => dragStart(e, task.id);
-
+    card.className = 'card'; card.draggable = isAdmin; card.style.animationDelay = Math.min(i, 12) * 40 + 'ms';
+    card.addEventListener('dragstart', (e) => window.dragStart(e, task.id));
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
     card.innerHTML = `
-    <div class="card-actions">
-      ${isAdmin ? `<button class="edit-btn" onclick="openEditModal('${task.id}')" title="Редактировать">✎</button>` : ''}
-      <button class="delete-btn" onclick="deleteTask('${task.id}')" title="Удалить">✕</button>
-    </div>
-    <div class="card-title">${task.title}</div>
-    <div class="card-desc">${task.desc || ''}</div>
-    ${task.url ? `<a href="${task.url}" target="_blank" class="card-link">🔗 Открыть проект</a>` : ''}
-  `;
-
-    container.appendChild(card);
+      ${isAdmin ? `<div class="card-actions">
+        ${next ? `<button onclick="moveTask('${task.id}')" title="Передвинуть дальше">➜</button>` : ''}
+        <button onclick="openEditModal('${task.id}')" title="Редактировать">✎</button>
+        <button class="delete-btn" onclick="deleteTask('${task.id}')" title="Удалить">✕</button></div>` : ''}
+      <div class="card-title">${esc(task.title)}</div>
+      <div class="card-desc">${esc(task.desc)}</div>
+      ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="card-link">🔗 Открыть проект</a>` : ''}`;
+    $('list-' + task.status).append(card);
   });
-
-  // 3. Обновляем счетчики
-  ['idea', 'dev', 'test', 'done'].forEach((status) => {
-    const count = document.getElementById(`count-${status}`);
-    if (count) count.innerText = counts[status];
-  });
+  STATUSES.forEach((s) => { $('count-' + s).textContent = counts[s]; });
+  const all = STATUSES.reduce((n, s) => n + counts[s], 0), pct = all ? Math.round(counts.done / all * 100) : 0;
+  $('done-n').textContent = counts.done; $('all-n').textContent = all;
+  $('prog-f').style.width = pct + '%'; $('prog-p').textContent = pct + '%';
 }
-// Drag & Drop
-window.dragStart = (e, id) => {
-  draggedId = id;
-  e.target.classList.add('dragging');
-};
+window.setFilter = (v) => { filter = v; render(); };
 
-window.allowDrop = (e) => {
-  e.preventDefault();
-  e.currentTarget.classList.add('drag-over');
-};
+// светящийся блик на карточке следует за курсором
+document.addEventListener('pointermove', (e) => {
+  const c = e.target.closest && e.target.closest('.card'); if (!c) return;
+  const r = c.getBoundingClientRect();
+  c.style.setProperty('--mx', e.clientX - r.left + 'px'); c.style.setProperty('--my', e.clientY - r.top + 'px');
+});
 
-window.dragLeave = (e) => {
-  e.currentTarget.classList.remove('drag-over');
-};
-
+// ── Перетаскивание ──
+window.dragStart = (e, id) => { draggedId = id; e.target.classList.add('dragging'); };
+window.allowDrop = (e) => { if (!isAdmin) return; e.preventDefault(); e.currentTarget.classList.add('drag-over'); };
+window.dragLeave = (e) => e.currentTarget.classList.remove('drag-over');
 window.drop = async (e) => {
-  if (!isAdmin) return alert('Только администратор может перемещать карточки!');
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-
-  if (draggedId) {
-    const newStatus = e.currentTarget.dataset.status;
-    const task = tasks.find((t) => t.id === draggedId);
-
-    if (task && task.status !== newStatus) {
-      await updateDoc(doc(db, 'tasks', draggedId), { status: newStatus });
-    }
-    draggedId = null;
-  }
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  if (!isAdmin) return toast('Только администратор может перемещать карточки', true);
+  const status = e.currentTarget.dataset.status, task = tasks.find((t) => t.id === draggedId);
+  draggedId = null;
+  if (task && task.status !== status) await updateDoc(doc(db, 'tasks', task.id), { status }).catch((err) => toast(err.message, true));
+};
+window.moveTask = async (id) => { // для телефонов, где перетаскивание неудобно
+  const t = tasks.find((x) => x.id === id), next = t && STATUSES[STATUSES.indexOf(t.status) + 1];
+  if (next) await updateDoc(doc(db, 'tasks', id), { status: next }).catch((err) => toast(err.message, true));
 };
 
+// ── Окно проекта ──
+const modal = () => $('modal');
 window.openModal = () => {
-  editingTaskId = null; // Сбрасываем режим редактирования
-  document.querySelector('#modal h2').innerText = 'Добавить проект'; // Возвращаем заголовок
-  
-  // Очищаем поля
-  document.getElementById('input-title').value = '';
-  document.getElementById('input-desc').value = '';
-  document.getElementById('input-link').value = '';
-  
-  document.getElementById('admin-form').style.display = 'block';
-  document.getElementById('modal').classList.add('open');
+  editingTaskId = null; modal().querySelector('h2').textContent = 'Добавить проект';
+  ['input-title', 'input-desc', 'input-link'].forEach((i) => { $(i).value = ''; });
+  $('input-status').value = 'dev'; $('admin-form').style.display = 'block'; modal().classList.add('open'); $('input-title').focus();
 };
-// Функция для закрытия модального окна добавления проекта
-window.closeModal = () => {
-  const modal = document.getElementById('modal');
-  if (modal) {
-    modal.classList.remove('open');
-  }
-};
-
 window.openEditModal = (id) => {
-  const task = tasks.find(t => t.id === id);
-  if (!task) return;
-
-  editingTaskId = id; // Запоминаем, что мы редактируем
-  document.querySelector('#modal h2').innerText = 'Редактировать проект'; // Меняем заголовок
-  
-  // Заполняем поля текущими данными
-  document.getElementById('input-title').value = task.title || '';
-  document.getElementById('input-desc').value = task.desc || '';
-  document.getElementById('input-link').value = task.url || '';
-  document.getElementById('input-status').value = task.status || 'idea';
-  
-  document.getElementById('admin-form').style.display = 'block';
-  document.getElementById('modal').classList.add('open');
-};window.openEditModal = (id) => {
-  const task = tasks.find(t => t.id === id);
-  if (!task) return;
-
-  editingTaskId = id; // Запоминаем, что мы редактируем
-  document.querySelector('#modal h2').innerText = 'Редактировать проект'; // Меняем заголовок
-  
-  // Заполняем поля текущими данными
-  document.getElementById('input-title').value = task.title || '';
-  document.getElementById('input-desc').value = task.desc || '';
-  document.getElementById('input-link').value = task.url || '';
-  document.getElementById('input-status').value = task.status || 'idea';
-  
-  document.getElementById('admin-form').style.display = 'block';
-  document.getElementById('modal').classList.add('open');
+  const t = tasks.find((x) => x.id === id); if (!t) return;
+  editingTaskId = id; modal().querySelector('h2').textContent = 'Редактировать проект';
+  $('input-title').value = t.title || ''; $('input-desc').value = t.desc || ''; $('input-link').value = t.url || ''; $('input-status').value = t.status || 'idea';
+  $('admin-form').style.display = 'block'; modal().classList.add('open');
 };
-
-// --- БЕЗОПАСНЫЕ ОБРАБОТЧИКИ КЛИКОВ ПО ФОНУ ---
-// Эта проверка предотвратит ошибку на строке 240
-document.addEventListener('click', function(e) {
-  // Закрытие окна добавления проекта
-  if (e.target.id === 'modal') {
-    window.closeModal();
-  }
-  // Закрытие окна авторизации
-  if (e.target.id === 'modal-auth') {
-    window.closeAuthModal(); // Убедись, что эта функция тоже есть ниже
-  }
-});
-
-// Добавление (Админ)
-window.openEditModal = (id) => {
-  const task = tasks.find(t => t.id === id);
-  if (!task) return;
-
-  editingTaskId = id; // Запоминаем, что мы редактируем
-  document.querySelector('#modal h2').innerText = 'Редактировать проект'; // Меняем заголовок
-  
-  // Заполняем поля текущими данными
-  document.getElementById('input-title').value = task.title || '';
-  document.getElementById('input-desc').value = task.desc || '';
-  document.getElementById('input-link').value = task.url || '';
-  document.getElementById('input-status').value = task.status || 'idea';
-  
-  document.getElementById('admin-form').style.display = 'block';
-  document.getElementById('modal').classList.add('open');
+window.closeModal = () => modal().classList.remove('open');
+window.addTaskAdmin = async () => {
+  const data = { title: $('input-title').value.trim(), desc: $('input-desc').value.trim(), url: $('input-link').value.trim(), status: $('input-status').value };
+  if (!data.title) return toast('Введите название проекта', true);
+  try {
+    if (editingTaskId) await updateDoc(doc(db, 'tasks', editingTaskId), data);
+    else await addDoc(tasksCollection, { ...data, createdAt: Date.now() });
+    closeModal(); toast(editingTaskId ? 'Изменения сохранены' : 'Проект добавлен');
+  } catch (err) { toast('Ошибка: ' + err.message, true); }
 };
-
-// Удаление
 window.deleteTask = async (id) => {
-  if (!isAdmin) return alert('Только администратор может удалять проекты!');
-  if (confirm('Удалить этот проект с доски?')) {
-    await deleteDoc(doc(db, 'tasks', id));
-  }
-};
-window.toggleAuth = () => {
-  const authModal = document.getElementById('modal-auth');
-  
-  if (isAdmin) {
-    signOut(auth).then(() => alert("Вы вышли из режима администратора"));
-  } else {
-    if (authModal) {
-      authModal.classList.add('open');
-    } else {
-      alert("Ошибка: HTML-окно для входа (id='modal-auth') не найдено на странице!");
-    }
-  }
+  if (!isAdmin) return toast('Только администратор может удалять проекты', true);
+  if (confirm('Удалить этот проект с доски?')) await deleteDoc(doc(db, 'tasks', id)).then(() => toast('Проект удалён')).catch((err) => toast(err.message, true));
 };
 
-window.closeAuthModal = () => {
-  const authModal = document.getElementById('modal-auth');
-  if (authModal) authModal.classList.remove('open');
-};
-
-// Безопасное закрытие модалки по клику на фон
-document.addEventListener('click', function(e) {
-  if (e.target.id === 'modal-auth') {
-    window.closeAuthModal();
-  }
-  if (e.target.id === 'modal') {
-    window.closeModal();
-  }
-});
-
-// А эта функция (toggleAuth) остается без изменений
-window.toggleAuth = () => {
-  if (isAdmin) {
-    signOut(auth).then(() => alert("Вы вышли из режима администратора"));
-  } else {
-    document.getElementById('modal-auth').classList.add('open');
-  }
-};
-document.getElementById('modal-auth').addEventListener('click', function(e) {
-  if (e.target === this) closeAuthModal();
-});
-
-window.addTaskGuest = async () => {
-  const idea = document.getElementById('input-guest-idea').value.trim();
-
-  if (!idea) return alert('Пожалуйста, напишите вашу идею!');
-
-  try {
-    // Отправляем идею в базу. Название = сама идея, статус = idea, остальное пустое.
-    await addDoc(tasksCollection, {
-      title: idea, 
-      desc: 'Предложено посетителем сайта',
-      url: '',
-      status: 'idea',
-      createdAt: Date.now()
-    });
-
-    document.getElementById('input-guest-idea').value = '';
-    closeModal();
-    alert("Спасибо! Ваша идея отправлена разработчику.");
-  } catch (error) {
-    alert("Ошибка при отправке: " + error.message);
-    console.error(error);
-  }
-}
-// --- БЛОК АВТОРИЗАЦИИ ---
-
-// Функция для кнопки "Войти" / "Выйти" в шапке
-window.toggleAuth = () => {
-  const authModal = document.getElementById('modal-auth');
-  if (isAdmin) {
-    signOut(auth).then(() => alert("Вы вышли из режима администратора"));
-  } else {
-    if (authModal) authModal.classList.add('open');
-  }
-};
-
-// Функция для закрытия окна ввода пароля
-window.closeAuthModal = () => {
-  const authModal = document.getElementById('modal-auth');
-  if (authModal) authModal.classList.remove('open');
-};
-
-// Сама функция входа (проверка логина и пароля)
+// ── Вход ──
+window.toggleAuth = () => { if (isAdmin) signOut(auth).then(() => toast('Вы вышли из режима администратора')); else { $('modal-auth').classList.add('open'); $('auth-email').focus(); } };
+window.closeAuthModal = () => $('modal-auth').classList.remove('open');
 window.login = async () => {
-  const email = document.getElementById('auth-email').value;
-  const pass = document.getElementById('auth-pass').value;
-  
   try {
-    // Пытаемся войти через Firebase
-    await signInWithEmailAndPassword(auth, email, pass);
-    // Если успешно — закрываем окно
-    window.closeAuthModal();
-    document.getElementById('auth-email').value = '';
-    document.getElementById('auth-pass').value = '';
-  } catch (error) {
-    alert("Ошибка входа: " + error.message);
-  }
+    await signInWithEmailAndPassword(auth, $('auth-email').value, $('auth-pass').value);
+    closeAuthModal(); $('auth-email').value = ''; $('auth-pass').value = ''; toast('Добро пожаловать, администратор');
+  } catch (err) { toast('Ошибка входа: ' + err.message, true); }
 };
-window.submitGuestIdea = async () => {
-  const idea = document.getElementById('guest-idea-input').value.trim();
-  if (!idea) return alert('Пожалуйста, напишите вашу идею!');
-
-  try {
-    await addDoc(tasksCollection, {
-      title: idea, 
-      desc: 'Предложено посетителем сайта',
-      url: '',
-      status: 'idea',
-      createdAt: Date.now()
-    });
-
-    document.getElementById('guest-idea-input').value = '';
-    alert("Спасибо! Ваша идея успешно отправлена.");
-  } catch (error) {
-    alert("Ошибка при отправке: " + error.message);
-  }
-};
-
-// Слушатель, который следит, вошел ты или нет
+$('auth-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') window.login(); });
+document.addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); if (e.target.id === 'modal-auth') closeAuthModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeAuthModal(); } });
 onAuthStateChanged(auth, (user) => {
-  const addBtn = document.getElementById('add-btn');
-  const authBtn = document.getElementById('auth-btn');
-  const guestSection = document.getElementById('guest-idea-section');
-
-  if (user) {
-    // АДМИН
-    isAdmin = true;
-    if (authBtn) {
-      authBtn.innerText = "Выйти";
-      authBtn.classList.remove('btn-cancel');
-      authBtn.classList.add('btn');
-    }
-    // Показываем кнопку создания проекта
-    if (addBtn) addBtn.style.display = 'inline-block';
-    // Скрываем нижнюю форму для гостей
-    if (guestSection) guestSection.style.display = 'none';
-    
-  } else {
-    // ГОСТЬ
-    isAdmin = false;
-    if (authBtn) {
-      authBtn.innerText = "Войти";
-      authBtn.classList.add('btn-cancel');
-      authBtn.classList.remove('btn');
-    }
-    // СКРЫВАЕМ верхнюю кнопку
-    if (addBtn) addBtn.style.display = 'none';
-    // ПОКАЗЫВАЕМ нижнюю форму для идей
-    if (guestSection) guestSection.style.display = 'block';
-  }
-  window.addTaskAdmin = async () => {
-  const title = document.getElementById('input-title').value.trim();
-  const desc = document.getElementById('input-desc').value.trim();
-  const url = document.getElementById('input-link').value.trim();
-  const status = document.getElementById('input-status').value;
-
-  if (!title) return alert('Введите название проекта!');
-
-  try {
-    if (typeof editingTaskId !== 'undefined' && editingTaskId) {
-      const taskRef = doc(db, 'tasks', editingTaskId);
-      await updateDoc(taskRef, {
-        title: title, desc: desc, url: url, status: status
-      });
-    } else {
-      await addDoc(tasksCollection, {
-        title: title, desc: desc, url: url, status: status, createdAt: Date.now()
-      });
-    }
-    if (window.closeModal) window.closeModal();
-  } catch (error) {
-    alert("Ошибка: " + error.message);
-  }
-};
-  
-  render(); 
+  isAdmin = !!user;
+  $('auth-btn').textContent = isAdmin ? 'Выйти' : 'Войти';
+  $('add-btn').style.display = isAdmin ? '' : 'none';
+  $('guest-idea-section').hidden = isAdmin;
+  render();
 });
+
+// ── Идея от гостя ──
+window.submitGuestIdea = async () => {
+  const idea = $('guest-idea-input').value.trim();
+  if (!idea) return toast('Напишите вашу идею', true);
+  try {
+    await addDoc(tasksCollection, { title: idea, desc: 'Предложено посетителем сайта', url: '', status: 'idea', createdAt: Date.now() });
+    $('guest-idea-input').value = ''; toast('Спасибо! Ваша идея отправлена');
+  } catch (err) { toast('Ошибка при отправке: ' + err.message, true); }
+};
+
+// ── Снегопад ──
+(() => {
+  const cv = $('snow'), g = cv.getContext('2d');
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let W, H, wind = 0, flakes = [];
+  const size = () => {
+    W = cv.width = innerWidth; H = cv.height = innerHeight;
+    flakes = Array.from({ length: Math.min(160, Math.round(W * H / 9000)) }, () => ({ x: Math.random() * W, y: Math.random() * H, z: Math.random() * .8 + .2, p: Math.random() * 6.28 }));
+  };
+  size(); addEventListener('resize', size);
+  addEventListener('pointermove', (e) => { wind = (e.clientX / W - .5) * 2; });
+  (function loop(t) {
+    g.clearRect(0, 0, W, H);
+    for (const f of flakes) {
+      f.y += f.z * 1.3 + .3; f.x += Math.sin(t / 1500 + f.p) * .4 * f.z + wind * f.z * 1.4;
+      if (f.y > H + 6) { f.y = -6; f.x = Math.random() * W; } if (f.x > W + 6) f.x = -6; if (f.x < -6) f.x = W + 6;
+      g.globalAlpha = .3 + f.z * .6; g.fillStyle = '#fff'; g.shadowColor = '#bfe6ff'; g.shadowBlur = 6 * f.z;
+      g.beginPath(); g.arc(f.x, f.y, f.z * 2.6, 0, 6.283); g.fill();
+    }
+    requestAnimationFrame(loop);
+  })(0);
+})();

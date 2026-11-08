@@ -3,75 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Доска разработчика</title>
+<meta name="theme-color" content="#050b1a">
+<title>Доска разработчика · E.Baltabayev</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="moon" aria-hidden="true"></div>
+<canvas id="snow" aria-hidden="true"></canvas>
+<svg class="mount" viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true">
+  <path d="M0 300V190l120-70 90 60 150-120 140 130 110-80 160 110 130-100 150 90 120-70 130 80 130-60v240z" fill="#0d1f45" opacity=".75"/>
+  <path d="M0 300V230l160-80 100 70 130-90 150 110 140-100 170 120 120-70 160 80 140-60 170 70v100z" fill="#08142e"/>
+  <path d="M390 130l-18 22 20-6 16 14 12-18zM1030 150l-14 20 18-6 14 12 10-16z" fill="#eaf6ff" opacity=".9"/>
+</svg>
 
-<!-- ШАПКА -->
 <header>
-  <h1>💻 E.Baltabayev</h1>
-  <div>
-    <button class="btn btn-cancel" id="auth-btn" onclick="toggleAuth()">Войти</button>
-    <button class="btn" id="add-btn" onclick="openModal()">+ Новый проект</button>
+  <div class="logo">
+    <span class="logo-ic">❄</span>
+    <div><h1>E.Baltabayev</h1><p class="sub">Доска проектов · зимняя смена</p></div>
+  </div>
+  <div class="tools">
+    <input class="search" id="q" type="search" placeholder="Поиск по проектам…" oninput="setFilter(this.value)" aria-label="Поиск">
+    <button class="btn ghost" id="auth-btn" onclick="toggleAuth()">Войти</button>
+    <button class="btn" id="add-btn" onclick="openModal()">＋ Новый проект</button>
   </div>
 </header>
 
-<!-- ДОСКА С КОЛОНКАМИ -->
-<div class="board">
-  <!-- Колонка 1: Идеи -->
+<section class="prog" aria-label="Прогресс">
+  <span class="prog-l"><b id="done-n">0</b> из <b id="all-n">0</b> готово</span>
+  <div class="prog-t"><div class="prog-f" id="prog-f"></div></div>
+  <span class="prog-p" id="prog-p">0%</span>
+</section>
+
+<main class="board">
   <div class="column" data-status="idea" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-    <div class="column-header">💡 Идеи <span class="count" id="count-idea">0</span></div>
+    <div class="column-header"><span>💡 Идеи</span><span class="count" id="count-idea">0</span></div>
     <div class="cards-container" id="list-idea"></div>
   </div>
-  
-  <!-- Колонка 2: В разработке -->
   <div class="column" data-status="dev" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-    <div class="column-header">⚙️ В разработке <span class="count" id="count-dev">0</span></div>
+    <div class="column-header"><span>⚙️ В разработке</span><span class="count" id="count-dev">0</span></div>
     <div class="cards-container" id="list-dev"></div>
   </div>
-  
-  <!-- Колонка 3: Тестирование -->
   <div class="column" data-status="test" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-    <div class="column-header">🧪 Тестирование <span class="count" id="count-test">0</span></div>
+    <div class="column-header"><span>🧪 Тестирование</span><span class="count" id="count-test">0</span></div>
     <div class="cards-container" id="list-test"></div>
   </div>
-  
-  <!-- Колонка 4: Готово -->
   <div class="column" data-status="done" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-    <div class="column-header">✅ Готово <span class="count" id="count-done">0</span></div>
+    <div class="column-header"><span>✅ Готово</span><span class="count" id="count-done">0</span></div>
     <div class="cards-container" id="list-done"></div>
   </div>
-</div>
+</main>
 
-<!-- СЕКЦИЯ ДЛЯ ИДЕЙ ГОСТЕЙ (Внизу страницы) -->
-<div id="guest-idea-section" style="display: none; max-width: 800px; margin: 40px auto 20px auto; padding: 24px; background: rgba(24, 24, 27, 0.8); border: 1px solid var(--neon-dev); border-radius: 12px; box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);">
-  <h2 style="margin-bottom: 16px; color: var(--text); text-shadow: 0 0 10px rgba(6,182,212,0.5);">💡 Есть идея для сайта?</h2>
-  <textarea id="guest-idea-input" rows="3" placeholder="Напишите, что бы вы хотели добавить или улучшить..." style="width: 100%; padding: 16px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: 15px; outline: none; margin-bottom: 16px; resize: vertical;"></textarea>
-  <button class="btn" onclick="submitGuestIdea()" style="width: 100%; padding: 14px; font-size: 16px;">Отправить предложение</button>
-</div>
+<section id="guest-idea-section" class="guest" hidden>
+  <h2>💡 Есть идея для сайта?</h2>
+  <textarea id="guest-idea-input" rows="3" placeholder="Напишите, что бы вы хотели добавить или улучшить…"></textarea>
+  <button class="btn" onclick="submitGuestIdea()">Отправить предложение</button>
+</section>
 
-<!-- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ ПРОЕКТА (Только для Админа) -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    
-    <div id="admin-form" style="display: none;">
+    <div id="admin-form" style="display:none">
       <h2>Добавить проект</h2>
-      <div class="form-group">
-        <label>Название проекта</label>
-        <input type="text" id="input-title" placeholder="Например: Turan Camp">
-      </div>
-      <div class="form-group">
-        <label>Краткое описание</label>
-        <textarea id="input-desc" rows="2" placeholder="Что это за проект..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>Ссылка на проект (URL)</label>
-        <input type="url" id="input-link" placeholder="https://...">
-      </div>
-      <div class="form-group">
-        <label>Статус</label>
+      <div class="form-group"><label>Название проекта</label><input type="text" id="input-title" placeholder="Например: Turan Camp"></div>
+      <div class="form-group"><label>Краткое описание</label><textarea id="input-desc" rows="2" placeholder="Что это за проект…"></textarea></div>
+      <div class="form-group"><label>Ссылка на проект (URL)</label><input type="url" id="input-link" placeholder="https://..."></div>
+      <div class="form-group"><label>Статус</label>
         <select id="input-status">
           <option value="idea">💡 Идея</option>
           <option value="dev" selected>⚙️ В разработке</option>
@@ -80,34 +77,25 @@
         </select>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-cancel" onclick="closeModal()">Отмена</button>
-        <button class="btn" onclick="addTaskAdmin()">Создать</button>
+        <button class="btn ghost" onclick="closeModal()">Отмена</button>
+        <button class="btn" onclick="addTaskAdmin()">Сохранить</button>
       </div>
     </div>
-
   </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО ВХОДА -->
 <div class="modal-overlay" id="modal-auth">
   <div class="modal">
-    <h2>Вход для Администратора</h2>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="auth-email" placeholder="admin@turan.kz">
-    </div>
-    <div class="form-group">
-      <label>Пароль</label>
-      <input type="password" id="auth-pass" placeholder="••••••••">
-    </div>
+    <h2>Вход для администратора</h2>
+    <div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="admin@turan.kz"></div>
+    <div class="form-group"><label>Пароль</label><input type="password" id="auth-pass" placeholder="••••••••"></div>
     <div class="modal-actions">
-      <button class="btn btn-cancel" onclick="closeAuthModal()">Отмена</button>
+      <button class="btn ghost" onclick="closeAuthModal()">Отмена</button>
       <button class="btn" onclick="login()">Войти</button>
     </div>
   </div>
 </div>
 
-<!-- ПОДКЛЮЧЕНИЕ СКРИПТА -->
 <script type="module" src="script.js"></script>
 </body>
 </html>
