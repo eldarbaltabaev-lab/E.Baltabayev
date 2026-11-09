@@ -51,7 +51,7 @@ function setSync(st) { const el = $('sync'); el.dataset.s = st; el.textContent =
 addEventListener('offline', () => setSync('off')); addEventListener('online', () => setSync(loaded ? 'ok' : 'load'));
 if (!navigator.onLine) setSync('off');
 
-onSnapshot(tasksCollection, (snap) => {
+onSnapshot(tasksCollection, { includeMetadataChanges: true }, (snap) => {
   const next = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   if (loaded) next.forEach((t) => { const o = tasks.find((x) => x.id === t.id); if (o && o.status !== 'done' && t.status === 'done') celebrate(); });
   if (!loaded) { document.body.classList.add('first'); setTimeout(() => document.body.classList.remove('first'), 700); }
