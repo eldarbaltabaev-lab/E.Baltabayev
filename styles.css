@@ -162,3 +162,34 @@ h1{font-size:30px;letter-spacing:.06em}.card-title{font-size:17px;line-height:1.
   .board{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-inline:-12px;padding:26px 12px 10px;scroll-padding-inline:12px}
   .column{flex:0 0 86%;min-height:360px;scroll-snap-align:start}}
 @media (prefers-reduced-motion:reduce){.modal,body.first .card{animation:none!important}}
+
+/* ───── v4: тёмные карточки, обсуждение, хронология, статистика ───── */
+:root{--sheet1:var(--paper);--sheet2:var(--paper2)}
+.card,.guest,.modal{background:repeating-linear-gradient(90deg,rgba(120,90,50,.035) 0 1px,transparent 1px 7px),linear-gradient(180deg,var(--sheet1),var(--sheet2))}
+[data-cards=dark]{--sheet1:#2b2738;--sheet2:#221f2d;--sumi:#efe9dc;--mute:#a8a2b8}
+[data-cards=dark] .card-desc,[data-cards=dark] .ptag{color:#c9c3d6}
+[data-cards=dark] .ptag,[data-cards=dark] .card-actions button{background:rgba(255,255,255,.1)}
+[data-cards=dark] .card-actions button{border-color:rgba(255,255,255,.25)}
+[data-cards=dark] .card-actions button:hover,[data-cards=dark] .ptag:hover{color:#1d1a26}
+[data-cards=dark] .guest textarea,[data-cards=dark] .form-group :is(input,textarea,select),[data-cards=dark] .cm-form :is(input,textarea),[data-cards=dark] kbd{background:#1a1823;border-color:rgba(255,255,255,.25)}
+[data-cards=dark] .card{box-shadow:0 10px 20px -10px #000,0 0 0 1px rgba(255,255,255,.12)}
+[data-cards=dark] .tag{color:#fff}[data-cards=dark] .vote{border-color:rgba(255,255,255,.35)}
+.tag[class*=verd-]{color:#fff}.verd-accepted{background:#2f7d5b}.verd-planned{background:#3b6fb5}.verd-declined{background:#7a6f80}
+#modal-card .modal{max-width:520px;max-height:90vh;overflow:auto}
+.dt-reply{margin:0 0 12px;padding:10px 12px;border-left:4px solid var(--shu);background:rgba(200,16,46,.08)}.dt-reply p{margin-top:4px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.cm{padding:8px 0;border-bottom:1px solid rgba(128,128,128,.25);font-size:14px}.cm time{margin-left:8px;font-size:11px;color:var(--mute)}
+.cm p{margin-top:2px;white-space:pre-wrap;word-break:break-word}.cm.by-admin{padding-left:10px;border-left:3px solid var(--shu)}.cm.wait{padding:8px;outline:1px dashed var(--idea);opacity:.8}
+.cm-act{display:flex;gap:6px;margin-top:4px}.cm-act button{padding:3px 10px;border:1px solid currentColor;border-radius:4px;background:transparent;color:inherit;font:700 12px var(--sans);cursor:pointer}
+.cm-form{display:grid;gap:8px;margin-top:10px}.cm-form input,.cm-form textarea{width:100%;padding:10px 12px;border-radius:4px;border:1.5px solid rgba(128,128,128,.45);background:#fffdf6;color:var(--sumi);font:inherit;outline:none}
+.cm-form input:focus,.cm-form textarea:focus{border-color:var(--shu)}
+.timeline{display:none;position:relative;z-index:2;max-width:760px;margin:0 auto;padding-left:22px;border-left:2px solid rgba(244,247,255,.25)}
+[data-view=time] .timeline{display:block}[data-view=time] .board{display:none!important}
+.tl-m{margin:24px 0 10px;font:700 16px var(--serif);color:var(--kin)}
+.tl-i{position:relative;display:flex;gap:12px;align-items:center;margin-bottom:10px;padding:10px 14px;border:1px solid rgba(244,247,255,.14);border-radius:4px;cursor:pointer;background:color-mix(in srgb,var(--ai) 75%,transparent);transition:.2s}
+.tl-i::before{content:"";position:absolute;left:-28px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px var(--ai)}
+.tl-i:hover{border-color:var(--c)}.tl-i b{display:block;font:700 16px var(--serif)}.tl-i span{font-size:12px;color:#a9b4d8}.tl-i .kj{flex:none;margin:0}.tl-e{padding:30px 0;text-align:center;color:#8e9ac0}
+.st{width:100%;border-collapse:collapse;font-size:13px}.st th{padding:6px 4px;border-bottom:2px solid var(--shu);text-align:left;font-family:var(--serif)}
+.st td{padding:6px 4px;border-bottom:1px solid rgba(128,128,128,.25)}.st td+td,.st th+th{text-align:right}
+.hanko{display:inline-grid;place-items:center;vertical-align:middle;width:26px;margin-left:8px;padding:5px 0;border-radius:3px;background:var(--shu);color:var(--paper);font:900 13px/1.1 var(--serif);font-style:normal;letter-spacing:0;writing-mode:vertical-rl;transform:rotate(-4deg);box-shadow:0 0 0 1px var(--paper) inset}
+.hanko.big{display:grid;width:64px;margin:0 auto 12px;padding:10px 0;font-size:34px;writing-mode:horizontal-tb}
+.modal.ny{text-align:center}.modal.ny h2{font-size:30px;color:var(--shu)}.modal.ny .modal-actions{justify-content:center}

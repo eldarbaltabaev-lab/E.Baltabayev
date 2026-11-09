@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, setDoc, onSnapshot, doc, updateDoc, deleteDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, setDoc, getDocs, query, where, onSnapshot, doc, updateDoc, deleteDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 // ── Firebase (твой конфиг, без изменений) ──
@@ -14,11 +14,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); // офлайн-кэш
 const auth = getAuth(app);
-const tasksCollection = collection(db, 'tasks'), sugCollection = collection(db, 'suggestions'), votesCollection = collection(db, 'votes');
+const tasksCollection = collection(db, 'tasks'), sugCollection = collection(db, 'suggestions'), votesCollection = collection(db, 'votes'), commentsCollection = collection(db, 'comments'), eventsCollection = collection(db, 'events');
 
 const STATUSES = ['idea', 'dev', 'test', 'done'];
 const KANJI = { idea: '案', dev: '作', test: '試', done: '完' };
-let isAdmin = false, suggestions = [], votes = {}, mine = new Set(), pendingDel = new Set(), unsubSug = null, tasks = [], draggedId = null, editingTaskId = null, filter = '';
+let isAdmin = false, comm = {}, unsubCm = null, openId = null, suggestions = [], votes = {}, mine = new Set(), pendingDel = new Set(), unsubSug = null, tasks = [], draggedId = null, editingTaskId = null, filter = '';
 const $ = (id) => document.getElementById(id);
 
 // ── Вспомогательное ──
@@ -38,9 +38,10 @@ function toast(text, bad, act) {
 const LABEL = { idea: 'Идея', dev: 'В разработке', test: 'Тестирование', done: 'Готово' };
 const GUEST = 'Предложено посетителем сайта';
 const store = { get(k, d) { try { const v = localStorage.getItem('board.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('board.' + k, JSON.stringify(v)); } catch {} } };
-let loaded = false, mode = store.get('mode', 'all'), sort = store.get('sort', 'manual');
+let loaded = false, mode = store.get('mode', 'all'), sort = store.get('sort', 'manual'), view = store.get('view', 'board'), soundOn = store.get('sound', true), cardsDark = store.get('cards', false);
 const DEV = store.get('dev', null) || (() => { const v = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); store.set('dev', v); return v; })();
 const isGuest = (t) => t.source === 'guest' || t.desc === GUEST;
+const VERD = { accepted: 'Принято', planned: 'В планах', declined: 'Отклонено' };
 const key = (t) => (t.order ?? t.createdAt ?? 0), dayN = (ts) => Math.floor((Date.now() - ts) / 864e5);
 const statusPatch = (s) => ({ status: s, updatedAt: Date.now(), history: arrayUnion({ s, t: Date.now() }) });
 const SORTS = { manual: '↕ Мой порядок', new: '↓ Сначала новые', top: '▲ Популярные' };
@@ -68,6 +69,13 @@ function visible(t) {
   if (mode === 'guest' && !isGuest(t)) return false;
   return true;
 }
+function subComments() {
+  if (unsubCm) unsubCm();
+  unsubCm = onSnapshot(isAdmin ? commentsCollection : query(commentsCollection, where('approved', '==', true)), (s) => {
+    comm = {}; s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.createdAt - b.createdAt).forEach((c) => (comm[c.task] = comm[c.task] || []).push(c));
+    render(); if (openId && $('modal-card').classList.contains('open')) renderComments();
+  }, (e) => console.error(e));
+}
 function sorted() {
   const a = tasks.filter((t) => !pendingDel.has(t.id));
   if (sort === 'new') return a.reverse();
@@ -92,7 +100,7 @@ function render() {
     const url = safeUrl(task.url), shot = safeUrl(task.shot), next = STATUSES[STATUSES.indexOf(task.status) + 1], guest = isGuest(task);
     const upd = task.updatedAt && task.updatedAt > task.createdAt + 36e5 ? task.updatedAt : 0;
     const badge = dayN(task.createdAt) < 3 ? '<span class="tag new">Новое</span>' : upd && dayN(upd) < 7 ? `<span class="tag upd">Обновлено ${ago(upd)}</span>` : '';
-    const since = task.status === 'dev' ? dayN(statusSince(task)) : -1;
+    const since = task.status === 'dev' ? dayN(statusSince(task)) : -1, nc = (comm[task.id] || []).filter((c) => c.approved).length;
     const card = document.createElement('div');
     card.className = 'card'; card.dataset.id = task.id; card.draggable = isAdmin; card.tabIndex = 0;
     card.addEventListener('dragstart', (e) => window.dragStart(e, task.id));
@@ -106,9 +114,9 @@ function render() {
       <div class="card-title">${esc(task.title)}</div>
       <div class="card-desc">${guest ? '' : esc(task.desc)}</div>
       ${(task.tags || []).length ? `<div>${task.tags.map((g) => `<button class="ptag" data-tag="${esc(g)}">#${esc(g)}</button>`).join('')}</div>` : ''}
-      <div class="card-meta"><time title="${esc(fullDate(task.createdAt))}">${ago(task.createdAt)}</time>${badge}${guest ? '<span class="tag">от посетителя</span>' : ''}${since >= 1 ? `<span>в работе ${since} дн.</span>` : ''}${task.status === 'idea' ? `<button class="vote" data-vote="${task.id}" aria-pressed="${mine.has(task.id)}" title="Поддержать идею">▲ ${votes[task.id] || 0}</button>` : ''}</div>
+      <div class="card-meta"><time title="${esc(fullDate(task.createdAt))}">${ago(task.createdAt)}</time>${badge}${guest ? '<span class="tag">от посетителя</span>' : ''}${task.verdict ? `<span class="tag verd-${task.verdict}">${VERD[task.verdict]}</span>` : ''}${nc ? `<span>💬 ${nc}</span>` : ''}${since >= 1 ? `<span>в работе ${since} дн.</span>` : ''}${task.status === 'idea' ? `<button class="vote" data-vote="${task.id}" aria-pressed="${mine.has(task.id)}" title="Поддержать идею">▲ ${votes[task.id] || 0}</button>` : ''}</div>
       <i class="stamp" aria-hidden="true">${KANJI[task.status]}</i>
-      ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="card-link">🔗 Открыть проект</a>` : ''}`;
+      ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener" class="card-link" data-track="${task.id}">🔗 Открыть проект</a>` : ''}`;
     $('list-' + task.status).append(card);
   });
   STATUSES.forEach((s) => { $('count-' + s).textContent = counts[s]; });
@@ -116,6 +124,7 @@ function render() {
   $('done-n').textContent = counts.done; $('all-n').textContent = all;
   $('prog-f').style.width = pct + '%'; $('prog-p').textContent = pct + '%';
   $('fnote').hidden = !(all && !shown);
+  if (view === 'time') renderTimeline();
 }
 const statusSince = (t) => ((t.history || []).slice(-1)[0] || {}).t || t.updatedAt || t.createdAt;
 window.vote = async (id) => {
@@ -135,15 +144,24 @@ $('q').addEventListener('input', (e) => {
 window.clearFilter = () => { filter = ''; $('q').value = ''; $('fclr').hidden = true; render(); };
 function syncChips() {
   document.querySelectorAll('#chips [data-f]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.f === mode));
-  $('sort-btn').textContent = SORTS[sort];
+  $('sort-btn').textContent = SORTS[sort]; document.body.dataset.view = view; $('view-btn').textContent = view === 'board' ? '☰ Хронология' : '▦ Доска';
 }
 $('chips').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.f) { mode = b.dataset.f; store.set('mode', mode); } else { const o = Object.keys(SORTS); sort = o[(o.indexOf(sort) + 1) % o.length]; store.set('sort', sort); }
+  if (b.id === 'view-btn') { view = view === 'board' ? 'time' : 'board'; store.set('view', view); } else if (b.dataset.f) { mode = b.dataset.f; store.set('mode', mode); } else { const o = Object.keys(SORTS); sort = o[(o.indexOf(sort) + 1) % o.length]; store.set('sort', sort); }
   syncChips(); render();
 });
 syncChips();
 
+function renderTimeline() {
+  let m = ''; const items = tasks.filter((t) => !pendingDel.has(t.id) && visible(t)).sort((a, b) => b.createdAt - a.createdAt);
+  $('timeline').innerHTML = items.length ? items.map((t) => {
+    const mo = new Date(t.createdAt).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }), head = mo !== m ? `<h3 class="tl-m">${mo}</h3>` : ''; m = mo;
+    return `${head}<div class="tl-i" data-id="${t.id}" tabindex="0" style="--c:var(--${t.status})"><i class="kj">${KANJI[t.status]}</i><div><b>${esc(t.title)}</b><span>${LABEL[t.status]} · ${esc(fullDate(t.createdAt))}</span></div></div>`;
+  }).join('') : '<p class="tl-e">Ничего не найдено</p>';
+}
+$('timeline').addEventListener('click', (e) => { const i = e.target.closest('.tl-i'); if (i) openCard(i.dataset.id); });
+$('timeline').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.dataset.id) openCard(e.target.dataset.id); });
 // ── Подробности карточки ──
 window.openCard = (id) => {
   const t = tasks.find((x) => x.id === id); if (!t) return;
@@ -153,17 +171,34 @@ window.openCard = (id) => {
     ${shot ? `<img class="dt-shot" src="${esc(shot)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
     <div class="dt-top"><i class="stamp big">${KANJI[t.status] || ''}</i><div><h2>${esc(t.title)}</h2><p class="dt-st">${LABEL[t.status] || ''} · ${ago(statusSince(t))}</p></div></div>
     <p class="dt-desc">${guest ? 'Идея от посетителя сайта.' : esc(t.desc) || 'Описания пока нет.'}</p>
+    ${t.reply || t.verdict ? `<div class="dt-reply"><b>${VERD[t.verdict] || 'Ответ автора'}</b>${t.reply ? '<p>' + esc(t.reply) + '</p>' : ''}</div>` : ''}
     ${(t.tags || []).length ? `<p>${t.tags.map((g) => `<span class="tag">#${esc(g)}</span>`).join(' ')}</p>` : ''}
     <h3 class="dt-h">Что нового</h3>
     <ul class="hist">${hist.map((h) => `<li><b>${LABEL[h.s] || ''}</b> · ${esc(fullDate(h.t))}</li>`).join('')}</ul>
+    <h3 class="dt-h">Обсуждение</h3><div id="cm-list"></div>
+    <div class="cm-form">${isAdmin ? '' : '<input id="cm-name" maxlength="30" placeholder="Имя (необязательно)">'}<textarea id="cm-text" rows="2" maxlength="300" placeholder="${isAdmin ? 'Ответ от автора…' : 'Ваш комментарий…'}"></textarea><button class="btn" onclick="sendComment()">Отправить</button></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="copyCard('${t.id}')">Поделиться</button>
-      ${url ? `<a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Открыть проект</a>` : ''}
+      ${url ? `<a class="btn" href="${esc(url)}" target="_blank" rel="noopener" data-track="${t.id}">Открыть проект</a>` : ''}
       ${isAdmin ? `<button class="btn ghost" onclick="closeCard();openEditModal('${t.id}')">Редактировать</button>` : ''}
       <button class="btn ghost" onclick="closeCard()">Закрыть</button>
     </div>`;
-  $('modal-card').classList.add('open'); history.replaceState(null, '', '#project=' + id);
+  $('modal-card').classList.add('open'); history.replaceState(null, '', '#project=' + id); openId = id; renderComments(); track(id, 'view');
 };
+function renderComments() {
+  const el = $('cm-list'); if (!el) return; const list = comm[openId] || [];
+  el.innerHTML = list.length ? list.map((c) => `<div class="cm${c.admin ? ' by-admin' : ''}${c.approved ? '' : ' wait'}"><b>${c.admin ? 'Автор' : esc(c.name || 'Гость')}</b><time>${ago(c.createdAt)}${c.approved ? '' : ' · на модерации'}</time><p>${esc(c.text)}</p>${isAdmin ? `<span class="cm-act">${c.approved ? '' : `<button onclick="approveComment('${c.id}')">Одобрить</button>`}<button onclick="deleteComment('${c.id}')">Удалить</button></span>` : ''}</div>`).join('') : '<p class="dt-st">Пока никто не писал. Будьте первым.</p>';
+}
+window.sendComment = async () => {
+  const text = $('cm-text').value.trim().slice(0, 300); if (!text) return toast('Напишите комментарий', true);
+  if (!isAdmin && Date.now() - store.get('lastCm', 0) < 3e4) return toast('Подождите полминуты', true);
+  try {
+    await addDoc(commentsCollection, { task: openId, text, name: isAdmin ? 'Автор' : $('cm-name').value.trim().slice(0, 30), createdAt: Date.now(), approved: isAdmin, admin: isAdmin });
+    $('cm-text').value = ''; if (!isAdmin) { store.set('lastCm', Date.now()); toast('Спасибо! Комментарий появится после проверки'); }
+  } catch (err) { toast('Ошибка: ' + err.message, true); }
+};
+window.approveComment = (id) => updateDoc(doc(db, 'comments', id), { approved: true }).catch((e) => toast(e.message, true));
+window.deleteComment = (id) => deleteDoc(doc(db, 'comments', id)).catch((e) => toast(e.message, true));
 const clearHash = () => { if (location.hash && !$('modal-card').classList.contains('open')) history.replaceState(null, '', location.pathname + location.search); };
 window.closeCard = () => { $('modal-card').classList.remove('open'); clearHash(); };
 window.copyCard = (id) => navigator.clipboard.writeText(location.origin + location.pathname + '#project=' + id).then(() => toast('Ссылка на карточку скопирована')).catch(() => toast('Не удалось скопировать', true));
@@ -204,7 +239,19 @@ const SS = SEASONS[SEASON];
 document.documentElement.dataset.season = SEASON; document.querySelector('meta[name=theme-color]').content = SS.bg;
 document.querySelectorAll('[data-sk]').forEach((el) => { el.textContent = SS.k; }); $('foot-t').textContent = SS.f; $('snow-btn').textContent = SS.i;
 setToday(); setInterval(setToday, 6e4); $('yr').textContent = new Date().getFullYear();
-function celebrate() { toast('完 · проект завершён!'); const r = $('list-done').getBoundingClientRect(); fx.burst(r.left + r.width / 2, Math.max(r.top + 70, 90)); }
+const applyCards = () => { document.documentElement.dataset.cards = cardsDark ? 'dark' : 'light'; $('cards-btn').setAttribute('aria-pressed', cardsDark); };
+window.toggleCards = () => { cardsDark = !cardsDark; store.set('cards', cardsDark); applyCards(); }; applyCards();
+const applySound = () => { $('sound-btn').textContent = soundOn ? '🔔' : '🔕'; };
+window.toggleSound = () => { soundOn = !soundOn; store.set('sound', soundOn); applySound(); bell(); }; applySound();
+function bell() { // колокольчик из трёх тонов, без аудиофайлов
+  if (!soundOn) return;
+  try { const a = new (window.AudioContext || window.webkitAudioContext)(), t = a.currentTime;
+    [[880, .25], [1318, .12], [2217, .06]].forEach(([f, v]) => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = f; g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(1e-4, t + 2.2); o.connect(g).connect(a.destination); o.start(t); o.stop(t + 2.3); });
+    setTimeout(() => a.close(), 2600); } catch {}
+}
+{ const d = new Date(); // новогодняя открытка: 28 дек – 10 янв (проверка: ?ny=1)
+  if (((d.getMonth() === 11 && d.getDate() >= 28) || (d.getMonth() === 0 && d.getDate() <= 10) || /[?&]ny=1/.test(location.search)) && !sessionStorage.getItem('ny')) { $('modal-ny').classList.add('open'); try { sessionStorage.setItem('ny', 1); } catch {} } }
+function celebrate() { bell(); toast('完 · проект завершён!'); const r = $('list-done').getBoundingClientRect(); fx.burst(r.left + r.width / 2, Math.max(r.top + 70, 90)); }
 
 // ── Перетаскивание ──
 window.dragStart = (e, id) => { draggedId = id; e.target.classList.add('dragging'); };
@@ -232,19 +279,19 @@ window.moveTask = async (id) => { // для телефонов, где пере�
 const modal = () => $('modal');
 window.openModal = () => {
   editingTaskId = null; modal().querySelector('h2').textContent = 'Добавить проект';
-  ['input-title', 'input-desc', 'input-link', 'input-tags', 'input-shot'].forEach((i) => { $(i).value = ''; });
-  $('input-status').value = 'dev'; $('admin-form').style.display = 'block'; modal().classList.add('open'); $('input-title').focus();
+  ['input-title', 'input-desc', 'input-link', 'input-tags', 'input-shot', 'input-reply'].forEach((i) => { $(i).value = ''; });
+  $('input-status').value = 'dev'; $('input-verdict').value = ''; $('admin-form').style.display = 'block'; modal().classList.add('open'); $('input-title').focus();
 };
 window.openEditModal = (id) => {
   const t = tasks.find((x) => x.id === id); if (!t) return;
   editingTaskId = id; modal().querySelector('h2').textContent = 'Редактировать проект';
-  $('input-title').value = t.title || ''; $('input-desc').value = t.desc || ''; $('input-link').value = t.url || ''; $('input-tags').value = (t.tags || []).join(', '); $('input-shot').value = t.shot || ''; $('input-status').value = t.status || 'idea';
+  $('input-title').value = t.title || ''; $('input-desc').value = t.desc || ''; $('input-link').value = t.url || ''; $('input-tags').value = (t.tags || []).join(', '); $('input-shot').value = t.shot || ''; $('input-reply').value = t.reply || ''; $('input-verdict').value = t.verdict || ''; $('input-status').value = t.status || 'idea';
   $('admin-form').style.display = 'block'; modal().classList.add('open');
 };
 window.closeModal = () => modal().classList.remove('open');
 window.addTaskAdmin = async () => {
   const data = { title: $('input-title').value.trim(), desc: $('input-desc').value.trim(), url: $('input-link').value.trim(), status: $('input-status').value,
-    shot: $('input-shot').value.trim(), tags: $('input-tags').value.split(',').map((s) => s.trim().replace(/^#/, '')).filter(Boolean).slice(0, 6) };
+    shot: $('input-shot').value.trim(), verdict: $('input-verdict').value, reply: $('input-reply').value.trim(), tags: $('input-tags').value.split(',').map((s) => s.trim().replace(/^#/, '')).filter(Boolean).slice(0, 6) };
   if (!data.title) return toast('Введите название проекта', true);
   try {
     const old = tasks.find((t) => t.id === editingTaskId), now = Date.now();
@@ -273,6 +320,18 @@ window.importData = async (input) => {
   } catch (err) { toast('Ошибка импорта: ' + err.message, true); }
 };
 
+// ── Статистика (только для админа) ──
+const seen = new Set();
+function track(id, type) { if (isAdmin || seen.has(type + id)) return; seen.add(type + id); addDoc(eventsCollection, { task: id, type, dev: DEV, t: Date.now() }).catch(() => {}); }
+document.addEventListener('click', (e) => { const a = e.target.closest && e.target.closest('a[data-track]'); if (a) track(a.dataset.track, 'click'); });
+window.openStats = async () => {
+  $('modal-stats').classList.add('open'); const b = $('stats-body'); b.textContent = 'Считаю…';
+  try {
+    const r = {}; (await getDocs(eventsCollection)).forEach((d) => { const e = d.data(), x = (r[e.task] = r[e.task] || { v: 0, c: 0, u: new Set() }); if (e.type === 'view') x.v++; else x.c++; x.u.add(e.dev); });
+    const rows = tasks.map((t) => ({ t, x: r[t.id] || { v: 0, c: 0, u: new Set() } })).sort((a, b) => b.x.v - a.x.v);
+    b.innerHTML = `<table class="st"><tr><th>Проект</th><th>Просм.</th><th>Людей</th><th>Клики</th><th>▲</th></tr>${rows.map(({ t, x }) => `<tr><td>${esc((t.title || '').slice(0, 40))}</td><td>${x.v}</td><td>${x.u.size}</td><td>${x.c}</td><td>${votes[t.id] || 0}</td></tr>`).join('')}</table>`;
+  } catch (err) { b.textContent = 'Ошибка: ' + err.message; }
+};
 // ── Вход ──
 window.toggleAuth = () => { if (isAdmin) signOut(auth).then(() => toast('Вы вышли из режима администратора')); else { $('modal-auth').classList.add('open'); $('auth-email').focus(); } };
 window.closeAuthModal = () => $('modal-auth').classList.remove('open');
@@ -300,6 +359,7 @@ onAuthStateChanged(auth, (user) => {
   $('guest-idea-section').hidden = isAdmin;
   document.querySelectorAll('[data-admin]').forEach((el) => { el.hidden = !isAdmin; });
   if (unsubSug) { unsubSug(); unsubSug = null; } suggestions = [];
+  subComments();
   if (isAdmin) unsubSug = onSnapshot(sugCollection, (s) => { suggestions = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.createdAt - b.createdAt); render(); }, (e) => console.error(e));
   render();
 });

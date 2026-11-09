@@ -36,6 +36,9 @@
     <input class="search" id="q" type="text" name="board-filter" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" readonly onfocus="this.removeAttribute('readonly')" placeholder="Поиск по проектам…" aria-label="Поиск">
     <button class="btn ghost" id="fclr" onclick="clearFilter()" hidden>✕ Сбросить поиск</button>
     <button class="btn ghost icon" id="snow-btn" onclick="toggleSnow()" aria-pressed="true" title="Эффекты сезона (S)" aria-label="Эффекты сезона">❄</button>
+    <button class="btn ghost icon" id="cards-btn" onclick="toggleCards()" aria-pressed="false" title="Тёмные карточки" aria-label="Тёмные карточки">◐</button>
+    <button class="btn ghost icon" id="sound-btn" onclick="toggleSound()" title="Звук колокольчика" aria-label="Звук">🔔</button>
+    <button class="btn ghost icon" data-admin hidden onclick="openStats()" title="Статистика" aria-label="Статистика">📊</button>
     <button class="btn ghost icon" onclick="openHelp()" title="Справка (?)" aria-label="Справка">？</button>
     <button class="btn ghost icon" data-admin hidden onclick="exportData()" title="Скачать резервную копию" aria-label="Резервная копия">⤓</button>
     <label class="btn ghost icon" data-admin hidden title="Загрузить копию" aria-label="Загрузить копию">⤒<input type="file" accept="application/json" hidden onchange="importData(this)"></label>
@@ -52,7 +55,7 @@
 
 <nav class="chips" id="chips" aria-label="Фильтры">
   <button data-f="all" aria-pressed="true">Все</button><button data-f="link" aria-pressed="false">С ссылкой</button><button data-f="guest" aria-pressed="false">От посетителей</button>
-  <span class="sp"></span><span id="fnote" hidden>Ничего не найдено</span><button id="sort-btn">↑ Сначала старые</button>
+  <span class="sp"></span><span id="fnote" hidden>Ничего не найдено</span><button id="view-btn"></button><button id="sort-btn">↑ Сначала старые</button>
 </nav>
 
 <main class="board">
@@ -73,6 +76,7 @@
     <div class="cards-container" id="list-done"></div>
   </div>
 </main>
+<section id="timeline" class="timeline" aria-label="Хронология"></section>
 
 <section id="guest-idea-section" class="guest" hidden>
   <h2><span class="jp">案</span> Есть идея для сайта?</h2>
@@ -80,7 +84,7 @@
   <button class="btn" onclick="submitGuestIdea()">Отправить предложение</button>
 </section>
 
-<footer class="foot"><span class="jp" data-sk>冬</span> E.Baltabayev · <span id="yr"></span> · <span id="foot-t"></span></footer>
+<footer class="foot"><span class="jp" data-sk>冬</span> E.Baltabayev · <span id="yr"></span> · <span id="foot-t"></span> <i class="hanko" aria-hidden="true">バル</i></footer>
 
 <div class="modal-overlay" id="modal-card"><div class="modal"><div id="card-body"></div></div></div>
 
@@ -99,6 +103,7 @@
     <h3>Для администратора</h3><p>После входа можно создавать, править и удалять проекты и перетаскивать карточки между колонками. На телефоне есть кнопка ➜, она передвигает карточку в следующую колонку. Новые идеи гостей ждут вашего «Одобрить» в колонке «Идеи». В режиме «Мой порядок» карточки можно переставлять и внутри колонки. Кнопки ⤓ и ⤒ сохраняют и загружают резервную копию. Когда проект переходит в «Готово», вылетают искры.</p>
     <h3>Горячие клавиши</h3>
     <p><kbd>/</kbd> поиск &nbsp; <kbd>?</kbd> справка &nbsp; <kbd>N</kbd> новый проект (админ) &nbsp; <kbd>S</kbd> снегопад &nbsp; <kbd>Esc</kbd> закрыть окно</p>
+    <h3>Обсуждение</h3><p>В окне карточки можно оставить комментарий (появится после проверки). Автор отвечает на идеи статусом «Принято», «В планах» или «Отклонено». Кнопка «Хронология» показывает проекты по датам, ◐ включает тёмные карточки, 🔔 звук колокольчика.</p>
     <h3>Времена года</h3><p>Тема меняется сама: 冬 зима, 桜 весна, 緑 лето, 秋 осень. Любую можно посмотреть через <kbd>?season=winter</kbd> в адресе.</p>
     <h3>Иероглифы</h3>
     <p>冬 <i>фую</i>: зима. 案 <i>ан</i>: замысел. 作 <i>саку</i>: создавать. 試 <i>си</i>: проба. 完 <i>кан</i>: завершение. 霜月 <i>симоцуки</i>: «месяц инея», ноябрь.</p>
@@ -114,6 +119,8 @@
       <div class="form-group"><label>Название проекта</label><input type="text" id="input-title" placeholder="Например: Turan Camp"></div>
       <div class="form-group"><label>Краткое описание</label><textarea id="input-desc" rows="2" placeholder="Что это за проект…"></textarea></div>
       <div class="form-group"><label>Ссылка на проект (URL)</label><input type="url" id="input-link" placeholder="https://..."></div>
+      <div class="form-group"><label>Ответ на идею</label><select id="input-verdict"><option value="">Без ответа</option><option value="accepted">Принято</option><option value="planned">В планах</option><option value="declined">Отклонено</option></select></div>
+      <div class="form-group"><label>Комментарий автора</label><textarea id="input-reply" rows="2" maxlength="300" placeholder="Что вы думаете об этой идее…"></textarea></div>
       <div class="form-group"><label>Теги (через запятую)</label><input type="text" id="input-tags" placeholder="сайт, игра, telegram"></div>
       <div class="form-group"><label>Скриншот (ссылка на картинку)</label><input type="url" id="input-shot" placeholder="https://.../preview.jpg"></div>
       <div class="form-group"><label>Статус</label>
@@ -132,6 +139,8 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-stats"><div class="modal wide"><h2><span class="jp">統計</span> Статистика</h2><div id="stats-body"></div><div class="modal-actions"><button class="btn" onclick="this.closest('.modal-overlay').classList.remove('open')">Закрыть</button></div></div></div>
+<div class="modal-overlay" id="modal-ny"><div class="modal ny"><i class="hanko big">賀</i><h2>謹賀新年</h2><p>С Новым годом! Пусть в новом году колонка «Готово» растёт быстрее остальных.</p><div class="modal-actions"><button class="btn" onclick="this.closest('.modal-overlay').classList.remove('open')">Спасибо!</button></div></div></div>
 <div class="modal-overlay" id="modal-auth">
   <div class="modal">
     <h2>Вход для администратора</h2>
