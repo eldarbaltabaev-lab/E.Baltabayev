@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, setDoc, getDocs, query, where, onSnapshot, doc, updateDoc, deleteDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, setDoc, getDoc, writeBatch, getDocs, query, where, onSnapshot, doc, updateDoc, deleteDoc, arrayUnion } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 // ── Firebase (твой конфиг, без изменений) ──
@@ -176,29 +176,45 @@ window.openCard = (id) => {
     <h3 class="dt-h">Что нового</h3>
     <ul class="hist">${hist.map((h) => `<li><b>${LABEL[h.s] || ''}</b> · ${esc(fullDate(h.t))}</li>`).join('')}</ul>
     <h3 class="dt-h">Обсуждение</h3><div id="cm-list"></div>
-    <div class="cm-form">${isAdmin ? '' : '<input id="cm-name" maxlength="30" placeholder="Имя (необязательно)">'}<textarea id="cm-text" rows="2" maxlength="300" placeholder="${isAdmin ? 'Ответ от автора…' : 'Ваш комментарий…'}"></textarea><button class="btn" onclick="sendComment()">Отправить</button></div>
+    <div class="cm-form">${isAdmin ? '' : '<input id="cm-name" maxlength="30" placeholder="Имя (необязательно)">'}<textarea id="cm-text" rows="2" maxlength="300" placeholder="${isAdmin ? 'Ответ от автора…' : 'Ваш комментарий…'}"></textarea><div class="cm-attach"><label class="btn ghost">📎 Прикрепить<input type="file" hidden accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt" onchange="pickFile(this)"></label><span id="cm-fname"></span></div><button class="btn" onclick="sendComment()">Отправить</button></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="copyCard('${t.id}')">Поделиться</button>
       ${url ? `<a class="btn" href="${esc(url)}" target="_blank" rel="noopener" data-track="${t.id}">Открыть проект</a>` : ''}
       ${isAdmin ? `<button class="btn ghost" onclick="closeCard();openEditModal('${t.id}')">Редактировать</button>` : ''}
       <button class="btn ghost" onclick="closeCard()">Закрыть</button>
     </div>`;
-  $('modal-card').classList.add('open'); history.replaceState(null, '', '#project=' + id); openId = id; renderComments(); track(id, 'view');
+  $('modal-card').classList.add('open'); history.replaceState(null, '', '#project=' + id); openId = id; cmFile = null; renderComments(); track(id, 'view');
+};
+let cmFile = null; // вложение, выбранное для комментария (до 600 КБ, хранится в Firestore)
+window.pickFile = (inp) => {
+  const f = inp.files[0]; inp.value = ''; if (!f) return;
+  if (f.size > 614400) return toast('Файл больше 600 КБ', true);
+  if (!/\.(pdf|png|jpe?g|docx?|xlsx?|txt)$/i.test(f.name)) return toast('Допустимы PDF, Word, Excel, TXT, PNG, JPG', true);
+  const r = new FileReader();
+  r.onload = () => { cmFile = { data: r.result, name: f.name.slice(0, 100), type: (f.type || 'application/octet-stream').slice(0, 100), size: f.size }; $('cm-fname').textContent = '📎 ' + f.name; };
+  r.readAsDataURL(f);
+};
+window.openFile = async (id) => { // файл только скачивается, в странице не открывается
+  try { const d = await getDoc(doc(db, 'files', id)); if (!d.exists()) return toast('Файл не найден', true);
+    const a = document.createElement('a'); a.href = d.data().data; a.download = d.data().name; a.click();
+  } catch (err) { toast('Не удалось получить файл: ' + err.message, true); }
 };
 function renderComments() {
   const el = $('cm-list'); if (!el) return; const list = comm[openId] || [];
-  el.innerHTML = list.length ? list.map((c) => `<div class="cm${c.admin ? ' by-admin' : ''}${c.approved ? '' : ' wait'}"><b>${c.admin ? 'Автор' : esc(c.name || 'Гость')}</b><time>${ago(c.createdAt)}${c.approved ? '' : ' · на модерации'}</time><p>${esc(c.text)}</p>${isAdmin ? `<span class="cm-act">${c.approved ? '' : `<button onclick="approveComment('${c.id}')">Одобрить</button>`}<button onclick="deleteComment('${c.id}')">Удалить</button></span>` : ''}</div>`).join('') : '<p class="dt-st">Пока никто не писал. Будьте первым.</p>';
+  el.innerHTML = list.length ? list.map((c) => `<div class="cm${c.admin ? ' by-admin' : ''}${c.approved ? '' : ' wait'}"><b>${c.admin ? 'Автор' : esc(c.name || 'Гость')}</b><time>${ago(c.createdAt)}${c.approved ? '' : ' · на модерации'}</time><p>${esc(c.text)}</p>${c.file ? `<button class="cm-file" onclick="openFile('${c.id}')">📎 ${esc(c.file.name)} · ${Math.max(1, Math.round(c.file.size / 1024))} КБ</button>` : ''}${isAdmin ? `<span class="cm-act">${c.approved ? '' : `<button onclick="approveComment('${c.id}')">Одобрить</button>`}<button onclick="deleteComment('${c.id}')">Удалить</button></span>` : ''}</div>`).join('') : '<p class="dt-st">Пока никто не писал. Будьте первым.</p>';
 }
 window.sendComment = async () => {
   const text = $('cm-text').value.trim().slice(0, 300); if (!text) return toast('Напишите комментарий', true);
   if (!isAdmin && Date.now() - store.get('lastCm', 0) < 3e4) return toast('Подождите полминуты', true);
   try {
-    await addDoc(commentsCollection, { task: openId, text, name: isAdmin ? 'Автор' : $('cm-name').value.trim().slice(0, 30), createdAt: Date.now(), approved: isAdmin, admin: isAdmin });
+    const ref = doc(commentsCollection), b = writeBatch(db), body = { task: openId, text, name: isAdmin ? 'Автор' : $('cm-name').value.trim().slice(0, 30), createdAt: Date.now(), approved: isAdmin, admin: isAdmin };
+    if (cmFile) { body.file = { name: cmFile.name, type: cmFile.type, size: cmFile.size }; b.set(doc(db, 'files', ref.id), cmFile); }
+    b.set(ref, body); await b.commit(); cmFile = null; $('cm-fname').textContent = '';
     $('cm-text').value = ''; if (!isAdmin) { store.set('lastCm', Date.now()); toast('Спасибо! Комментарий появится после проверки'); }
   } catch (err) { toast('Ошибка: ' + err.message, true); }
 };
 window.approveComment = (id) => updateDoc(doc(db, 'comments', id), { approved: true }).catch((e) => toast(e.message, true));
-window.deleteComment = (id) => deleteDoc(doc(db, 'comments', id)).catch((e) => toast(e.message, true));
+window.deleteComment = (id) => deleteDoc(doc(db, 'comments', id)).then(() => deleteDoc(doc(db, 'files', id)).catch(() => {})).catch((e) => toast(e.message, true));
 const clearHash = () => { if (location.hash && !$('modal-card').classList.contains('open')) history.replaceState(null, '', location.pathname + location.search); };
 window.closeCard = () => { $('modal-card').classList.remove('open'); clearHash(); };
 window.copyCard = (id) => navigator.clipboard.writeText(location.origin + location.pathname + '#project=' + id).then(() => toast('Ссылка на карточку скопирована')).catch(() => toast('Не удалось скопировать', true));

@@ -193,3 +193,6 @@ h1{font-size:30px;letter-spacing:.06em}.card-title{font-size:17px;line-height:1.
 .hanko{display:inline-grid;place-items:center;vertical-align:middle;width:26px;margin-left:8px;padding:5px 0;border-radius:3px;background:var(--shu);color:var(--paper);font:900 13px/1.1 var(--serif);font-style:normal;letter-spacing:0;writing-mode:vertical-rl;transform:rotate(-4deg);box-shadow:0 0 0 1px var(--paper) inset}
 .hanko.big{display:grid;width:64px;margin:0 auto 12px;padding:10px 0;font-size:34px;writing-mode:horizontal-tb}
 .modal.ny{text-align:center}.modal.ny h2{font-size:30px;color:var(--shu)}.modal.ny .modal-actions{justify-content:center}
+
+.cm-attach{display:flex;align-items:center;gap:10px;font-size:13px;word-break:break-all}.cm-attach .btn{flex:none;padding:7px 12px;font-size:13px;cursor:pointer}
+.cm-file{margin-top:6px;padding:5px 10px;border:1px solid currentColor;border-radius:4px;background:transparent;color:var(--shu);font:700 12px var(--sans);cursor:pointer;text-align:left;word-break:break-all}
