@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e8ebf7">
+<meta name="description" content="Доска проектов E.Baltabayev: идеи, разработка, тестирование и готовые работы в реальном времени.">
+<title>Доска разработчика · E.Baltabayev</title>
+<meta property="og:title" content="Доска разработчика · E.Baltabayev"><meta property="og:description" content="Идеи, разработка, тестирование и готовые работы в реальном времени."><meta property="og:type" content="website"><meta name="twitter:card" content="summary">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@500;600;700&family=Unbounded:wght@500;700&family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+<canvas id="snow" aria-hidden="true"></canvas>
+
+<header>
+<div class="logo">
+<span class="logo-ic" data-sk aria-hidden="true">冬</span>
+<div><h1>E.Baltabayev</h1><p class="sub">доска проектов</p><p class="today" id="today"></p></div>
+</div>
+<div class="tools">
+<span class="sync" id="sync" data-s="load" role="status">● подключаюсь…</span>
+<input class="search" id="q" type="text" name="board-filter" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" readonly onfocus="this.removeAttribute('readonly')" placeholder="Поиск по проектам…" aria-label="Поиск">
+<button class="btn ghost" id="fclr" onclick="clearFilter()" hidden>✕ Сбросить поиск</button>
+<button class="btn" id="add-btn" onclick="openModal()">＋ Новый проект</button>
+<button class="btn ghost icon" id="snow-btn" onclick="toggleSnow()" aria-pressed="true" title="Эффекты (S)" aria-label="Эффекты">❄</button>
+<button class="btn ghost icon" id="cards-btn" onclick="toggleCards()" aria-pressed="false" title="Тёмные карточки" aria-label="Тёмные карточки">◐</button>
+<button class="btn ghost icon" id="sound-btn" onclick="toggleSound()" title="Звук" aria-label="Звук">🔔</button>
+<button class="btn ghost icon" data-admin hidden onclick="openStats()" title="Статистика" aria-label="Статистика">📊</button>
+<button class="btn ghost icon" onclick="openHelp()" title="Справка (?)" aria-label="Справка">？</button>
+<button class="btn ghost icon" data-admin hidden onclick="exportData()" title="Скачать копию" aria-label="Скачать копию">⤓</button>
+<label class="btn ghost icon" data-admin hidden title="Загрузить копию" aria-label="Загрузить копию">⤒<input type="file" accept="application/json" hidden onchange="importData(this)"></label>
+<button class="btn ghost" id="auth-btn" onclick="toggleAuth()">Войти</button>
+</div>
+</header>
+
+<section class="prog" aria-label="Прогресс">
+<span class="prog-l">Готово <b id="done-n">0</b> из <b id="all-n">0</b></span>
+<div class="prog-t"><div class="prog-f" id="prog-f"></div></div>
+<span class="prog-p" id="prog-p">0%</span>
+</section>
+
+<nav class="chips" id="chips" aria-label="Фильтры">
+<button data-f="all" aria-pressed="true">Все</button><button data-f="link" aria-pressed="false">Со ссылкой</button><button data-f="guest" aria-pressed="false">От гостей</button>
+<span class="sp"></span><span id="fnote" hidden>Ничего не найдено</span><button id="view-btn"></button><button id="sort-btn"></button>
+</nav>
+
+<main class="board">
+<div class="column" data-status="idea" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+<div class="column-header"><span><i class="kj">案</i>Идеи</span><span class="count" id="count-idea">0</span></div>
+<div class="cards-container" id="list-idea"></div>
+</div>
+<div class="column" data-status="dev" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+<div class="column-header"><span><i class="kj">作</i>В разработке</span><span class="count" id="count-dev">0</span></div>
+<div class="cards-container" id="list-dev"></div>
+</div>
+<div class="column" data-status="test" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+<div class="column-header"><span><i class="kj">試</i>Тестирование</span><span class="count" id="count-test">0</span></div>
+<div class="cards-container" id="list-test"></div>
+</div>
+<div class="column" data-status="done" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+<div class="column-header"><span><i class="kj">完</i>Готово</span><span class="count" id="count-done">0</span></div>
+<div class="cards-container" id="list-done"></div>
+</div>
+</main>
+
+<section id="timeline" class="timeline" aria-label="Хронология"></section>
+
+<section id="guest-idea-section" class="guest" hidden>
+<h2>Есть идея для сайта?</h2>
+<textarea id="guest-idea-input" rows="3" maxlength="280" placeholder="Напишите, что добавить или улучшить…"></textarea>
+<button class="btn" onclick="submitGuestIdea()">Отправить идею</button>
+</section>
+
+<footer class="foot"><span data-sk>冬</span> E.Baltabayev · <span id="yr"></span> · <span id="foot-t"></span> <i class="hanko" aria-hidden="true">バル</i></footer>
+
+<div class="modal-overlay" id="modal-card"><div class="modal"><div id="card-body"></div></div></div>
+
+<div class="modal-overlay" id="modal-help"><div class="modal wide">
+<h2>Справка</h2>
+<div class="help">
+<h3>Колонки</h3>
+<ul class="legend">
+<li><i class="kj k-idea">案</i><span><b>Идеи</b>: только задумано</span></li>
+<li><i class="kj k-dev">作</i><span><b>В разработке</b>: идёт работа</span></li>
+<li><i class="kj k-test">試</i><span><b>Тестирование</b>: проверяется</span></li>
+<li><i class="kj k-done">完</i><span><b>Готово</b>: завершено</span></li>
+</ul>
+<h3>Для гостей</h3><p>Нажмите на карточку, чтобы открыть подробности и оставить комментарий. Идею можно отправить в форме внизу, она появится после проверки. За идеи голосуют кнопкой ▲, один раз с устройства. «Поделиться» копирует ссылку на карточку.</p>
+<h3>Для администратора</h3><p>После входа можно создавать, править и удалять проекты, перетаскивать карточки между колонками (на телефоне есть кнопка ➜) и одобрять идеи гостей. ⤓ и ⤒ сохраняют и загружают резервную копию.</p>
+<h3>Горячие клавиши</h3>
+<p><kbd>/</kbd> поиск &nbsp; <kbd>?</kbd> справка &nbsp; <kbd>N</kbd> новый проект &nbsp; <kbd>S</kbd> эффекты &nbsp; <kbd>Esc</kbd> закрыть окно</p>
+<h3>Связь</h3><p>Значок вверху показывает состояние: «на связи», «из кэша» или «нет сети». Настройки запоминаются в браузере.</p>
+</div>
+<div class="modal-actions"><button class="btn" onclick="closeHelp()">Понятно</button></div>
+</div></div>
+
+<div class="modal-overlay" id="modal">
+<div class="modal">
+<div id="admin-form" style="display:none">
+<h2>Добавить проект</h2>
+<div class="form-group"><label>Название проекта</label><input type="text" id="input-title" placeholder="Например: Turan Camp"></div>
+<div class="form-group"><label>Краткое описание</label><textarea id="input-desc" rows="2" placeholder="Что это за проект…"></textarea></div>
+<div class="form-group"><label>Ссылка на проект (URL)</label><input type="url" id="input-link" placeholder="https://..."></div>
+<div class="form-group"><label>Статус</label>
+<select id="input-status"><option value="idea">💡 Идея</option><option value="dev" selected>⚙️ В разработке</option><option value="test">🧪 Тестирование</option><option value="done">✅ Готово</option></select></div>
+<div class="form-group"><label>Ответ на идею</label><select id="input-verdict"><option value="">Без ответа</option><option value="accepted">Принято</option><option value="planned">В планах</option><option value="declined">Отклонено</option></select></div>
+<div class="form-group"><label>Комментарий автора</label><textarea id="input-reply" rows="2" maxlength="300" placeholder="Что вы думаете об этой идее…"></textarea></div>
+<div class="form-group"><label>Теги (через запятую)</label><input type="text" id="input-tags" placeholder="сайт, игра, telegram"></div>
+<div class="form-group"><label>Скриншот (ссылка на картинку)</label><input type="url" id="input-shot" placeholder="https://.../preview.jpg"></div>
+<div class="modal-actions">
+<button class="btn ghost" onclick="closeModal()">Отмена</button>
+<button class="btn" onclick="addTaskAdmin()">Сохранить</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="modal-stats"><div class="modal wide"><h2>Статистика</h2><div id="stats-body"></div><div class="modal-actions"><button class="btn" onclick="this.closest('.modal-overlay').classList.remove('open')">Закрыть</button></div></div></div>
+
+<div class="modal-overlay" id="modal-ny"><div class="modal ny"><i class="hanko big">賀</i><h2>С Новым годом!</h2><p>Пусть в новом году колонка «Готово» растёт быстрее остальных.</p><div class="modal-actions"><button class="btn" onclick="this.closest('.modal-overlay').classList.remove('open')">Спасибо!</button></div></div></div>
+
+<div class="modal-overlay" id="modal-auth">
+<div class="modal">
+<h2>Вход для администратора</h2>
+<div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="admin@turan.kz"></div>
+<div class="form-group"><label>Пароль</label><input type="password" id="auth-pass" placeholder="••••••••"></div>
+<div class="modal-actions">
+<button class="btn ghost" onclick="closeAuthModal()">Отмена</button>
+<button class="btn" onclick="login()">Войти</button>
+</div>
+</div>
+</div>
+
+<script type="module" src="script.js"></script>
+<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script>
+</body>
+</html>
