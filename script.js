@@ -25,7 +25,7 @@ const DEV = store.get('dev', null) || (() => { const v = Math.random().toString(
 
 let isAdmin = false, loaded = false, tasks = [], suggestions = [], comm = {}, votes = {}, mine = new Set(), pendingDel = new Set();
 let openId = null, editingId = null, draggedId = null, filter = '', unsubCm = null, unsubSug = null;
-let mode = store.get('mode', 'all'), sort = store.get('sort', 'manual'), view = store.get('view', 'board'), soundOn = store.get('sound', true), cardsDark = store.get('cards', true);
+let mode = store.get('mode', 'all'), sort = store.get('sort', 'manual'), view = store.get('view', 'board'), soundOn = store.get('sound', true), cardsDark = store.get('cards', false);
 
 // ── Помощники ──
 const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -263,7 +263,7 @@ const SEASONS = {
 const qs = new URLSearchParams(location.search).get('season');
 const SEASON = SEASONS[qs] ? qs : ((m) => (m === 11 || m < 2 ? 'winter' : m < 5 ? 'spring' : m < 8 ? 'summer' : 'autumn'))(new Date().getMonth());
 const SS = SEASONS[SEASON];
-document.documentElement.dataset.season = SEASON; document.querySelector('meta[name=theme-color]').content = SS.bg;
+document.documentElement.dataset.season = SEASON; 
 document.querySelectorAll('[data-sk]').forEach((el) => { el.textContent = SS.k; }); $('foot-t').textContent = SS.f; $('snow-btn').textContent = SS.i;
 setToday(); setInterval(setToday, 6e4); $('yr').textContent = new Date().getFullYear();
 
@@ -410,7 +410,7 @@ window.approveIdea = async (id) => {
 window.rejectIdea = (id) => deleteDoc(doc(db, 'suggestions', id)).then(() => toast('Идея отклонена')).catch(handle);
 
 // ── Сезонные частицы и искры (canvas) ──
-let snowOn = store.get('snow', true);
+let snowOn = store.get('snow', false);
 $('snow-btn').setAttribute('aria-pressed', snowOn);
 window.toggleSnow = () => { snowOn = !snowOn; store.set('snow', snowOn); $('snow-btn').setAttribute('aria-pressed', snowOn); toast(snowOn ? 'Эффекты включены' : 'Эффекты выключены'); };
 const fx = { sparks: [], burst() {} };
