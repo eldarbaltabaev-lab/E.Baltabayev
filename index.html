@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#e8ebf7">
+<meta name="theme-color" content="#161616">
 <meta name="description" content="Доска проектов E.Baltabayev: идеи, разработка, тестирование и готовые работы в реальном времени.">
 <title>Доска разработчика · E.Baltabayev</title>
 <meta property="og:title" content="Доска разработчика · E.Baltabayev"><meta property="og:description" content="Идеи, разработка, тестирование и готовые работы в реальном времени."><meta property="og:type" content="website"><meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Onest:wght@500;600;700&family=Unbounded:wght@500;700&family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="favicon.png">
 </head>
@@ -19,7 +19,7 @@
 <header>
 <div class="logo">
 <span class="logo-ic" data-sk aria-hidden="true">冬</span>
-<div><h1>E.Baltabayev</h1><p class="sub">доска проектов</p><p class="today" id="today"></p></div>
+<div><h1>E.Baltabayev</h1><p class="sub">Управление проектами</p><p class="today" id="today"></p></div>
 </div>
 <div class="tools">
 <span class="sync" id="sync" data-s="load" role="status">● подключаюсь…</span>
@@ -37,14 +37,15 @@
 </div>
 </header>
 
-<section class="prog" aria-label="Прогресс">
-<span class="prog-l">Готово <b id="done-n">0</b> из <b id="all-n">0</b></span>
-<div class="prog-t"><div class="prog-f" id="prog-f"></div></div>
-<span class="prog-p" id="prog-p">0%</span>
+<section class="kpi" aria-label="Показатели">
+<div><span>Всего проектов</span><b id="all-n">0</b></div>
+<div><span>В работе и на проверке</span><b id="k-work">0</b></div>
+<div class="late"><span>Просрочено</span><b id="k-late">0</b></div>
+<div><span>Завершено</span><b id="done-n">0</b><div class="prog-t"><div class="prog-f" id="prog-f"></div></div><span class="prog-p" id="prog-p">0%</span></div>
 </section>
 
 <nav class="chips" id="chips" aria-label="Фильтры">
-<button data-f="all" aria-pressed="true">Все</button><button data-f="link" aria-pressed="false">Со ссылкой</button><button data-f="guest" aria-pressed="false">От гостей</button>
+<button data-f="all" aria-pressed="true">Все</button><button data-f="link" aria-pressed="false">Со ссылкой</button><button data-f="guest" aria-pressed="false">От гостей</button><button data-f="high" aria-pressed="false">Высокий приоритет</button><button data-f="late" aria-pressed="false">Просрочено</button>
 <span class="sp"></span><span id="fnote" hidden>Ничего не найдено</span><button id="view-btn"></button><button id="sort-btn"></button>
 </nav>
 
@@ -105,6 +106,8 @@
 <div class="form-group"><label>Название проекта</label><input type="text" id="input-title" placeholder="Например: Turan Camp"></div>
 <div class="form-group"><label>Краткое описание</label><textarea id="input-desc" rows="2" placeholder="Что это за проект…"></textarea></div>
 <div class="form-group"><label>Ссылка на проект (URL)</label><input type="url" id="input-link" placeholder="https://..."></div>
+<div class="row2"><div class="form-group"><label>Приоритет</label><select id="input-prio"><option value="low">Низкий</option><option value="med" selected>Средний</option><option value="high">Высокий</option><option value="crit">Критический</option></select></div>
+<div class="form-group"><label>Срок</label><input type="date" id="input-due"></div></div>
 <div class="form-group"><label>Статус</label>
 <select id="input-status"><option value="idea">💡 Идея</option><option value="dev" selected>⚙️ В разработке</option><option value="test">🧪 Тестирование</option><option value="done">✅ Готово</option></select></div>
 <div class="form-group"><label>Ответ на идею</label><select id="input-verdict"><option value="">Без ответа</option><option value="accepted">Принято</option><option value="planned">В планах</option><option value="declined">Отклонено</option></select></div>
